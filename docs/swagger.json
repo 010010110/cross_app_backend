@@ -1,0 +1,1241 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Cross App Backend",
+    "description": "API para gestao e gamificacao de CrossFit",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000",
+      "description": "Desenvolvimento local"
+    }
+  ],
+  "tags": [
+    { "name": "Auth" },
+    { "name": "Boxes" },
+    { "name": "Checkins" },
+    { "name": "Exercises" },
+    { "name": "Feed" },
+    { "name": "Rewards" },
+    { "name": "Results" },
+    { "name": "Users" },
+    { "name": "Wods" }
+  ],
+  "paths": {
+    "/auth/login": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Login de usuario",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/LoginDto" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "JWT de identidade retornado com sucesso",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SessionResponse" }
+              }
+            }
+          },
+          "401": {
+            "description": "Credenciais invalidas",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/boxes/register": {
+      "post": {
+        "tags": ["Boxes"],
+        "summary": "Cadastro do contratante",
+        "description": "Cria um novo Box (ou filial via parentBoxId), cria ou vincula o ADMIN informado e ja retorna o JWT da sessao autenticada para o novo box.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/RegisterBoxDto" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Box cadastrado com sucesso e JWT retornado automaticamente",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/RegisterBoxResponse" }
+              }
+            }
+          },
+          "400": {
+            "description": "Dados invalidos ou duplicados",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/boxes/mine": {
+      "get": {
+        "tags": ["Boxes"],
+        "summary": "Lista os boxes do usuario autenticado",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Lista de boxes retornada com sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/Box" }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token ausente, invalido ou expirado",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/checkins": {
+      "post": {
+        "tags": ["Checkins"],
+        "summary": "Realiza check-in por geolocalizacao no box",
+        "description": "Permite check-in apenas quando o atleta estiver a menos de 100 metros das coordenadas do box.",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/XBoxIdHeader" }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateCheckinDto" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Check-in realizado com sucesso",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/CheckinCreateResponse" }
+              }
+            }
+          },
+          "400": {
+            "description": "Dados invalidos para realizacao de check-in",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "403": {
+            "description": "Usuario fora do raio permitido para check-in",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "404": {
+            "description": "Box nao encontrado",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/checkins/me": {
+      "get": {
+        "tags": ["Checkins"],
+        "summary": "Lista os checkins do usuario autenticado",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/XBoxIdHeader" }],
+        "responses": {
+          "200": {
+            "description": "Checkins do usuario retornados com sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/Checkin" }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/checkins/box": {
+      "get": {
+        "tags": ["Checkins"],
+        "summary": "Relatorio diario de checkins do box",
+        "description": "Retorna todos os checkins registrados no box atual no dia de hoje.",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/XBoxIdHeader" }],
+        "responses": {
+          "200": {
+            "description": "Checkins do dia retornados com sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/Checkin" }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Perfil sem permissao para acessar relatorio",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/exercises": {
+      "get": {
+        "tags": ["Exercises"],
+        "summary": "Lista exercicios do box + exercicios globais",
+        "description": "Retorna todos os exercicios globais da plataforma (isGlobal: true) mais os exercicios customizados do box do usuario autenticado.",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/XBoxIdHeader" }],
+        "responses": {
+          "200": {
+            "description": "Lista de exercicios retornada com sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/Exercise" }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token ausente, invalido ou expirado",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Exercises"],
+        "summary": "Cria exercicio customizado no box",
+        "description": "Insere um novo exercicio vinculado ao box do Admin autenticado. Acesso restrito a ADMIN.",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/XBoxIdHeader" }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateExerciseDto" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Exercicio criado com sucesso",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/CreateExerciseResponse" }
+              }
+            }
+          },
+          "401": {
+            "description": "Token ausente, invalido ou expirado",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "403": {
+            "description": "Perfil sem permissao para criar exercicio",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "409": {
+            "description": "Exercicio com este nome ja existe neste box",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "400": {
+            "description": "Dados invalidos",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/feed/upload": {
+      "post": {
+        "tags": ["Feed"],
+        "summary": "Upload de imagem para post do feed",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/XBoxIdHeader" }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": ["image"],
+                "properties": {
+                  "image": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Upload realizado com sucesso",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/FeedUploadResponse" }
+              }
+            }
+          },
+          "400": {
+            "description": "Imagem invalida ou ausente",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "403": {
+            "description": "Perfil sem permissao para postar",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/feed/post": {
+      "post": {
+        "tags": ["Feed"],
+        "summary": "Cria post no feed do box",
+        "description": "Recebe texto + foto opcional e vincula o post a um check-in valido do aluno. Um check-in aceita somente um post.",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/XBoxIdHeader" }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateFeedPostDto" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Post criado com sucesso",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/CreateFeedPostResponse" }
+              }
+            }
+          },
+          "400": {
+            "description": "Dados invalidos ou check-in nao encontrado",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "403": {
+            "description": "Perfil sem permissao para postar",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "409": {
+            "description": "Ja existe post para o check-in informado",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/rewards/me/summary": {
+      "get": {
+        "tags": ["Rewards"],
+        "summary": "Resumo de consistencia do aluno no box atual",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/XBoxIdHeader" }],
+        "responses": {
+          "200": {
+            "description": "Resumo de consistencia retornado com sucesso",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/RewardSummary" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/rewards/me/milestones": {
+      "get": {
+        "tags": ["Rewards"],
+        "summary": "Lista milestones desbloqueados no box atual",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/XBoxIdHeader" }],
+        "responses": {
+          "200": {
+            "description": "Milestones retornados com sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/RewardMilestone" }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/results": {
+      "post": {
+        "tags": ["Results"],
+        "summary": "Registra resultado de treino e identifica novo PR",
+        "description": "Salva o score do aluno para um exercicio em um WOD e marca isNewPR=true quando o score supera o melhor historico do proprio aluno para o mesmo exercicio.",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/XBoxIdHeader" }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateResultDto" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Resultado salvo com sucesso",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/CreateResultResponse" }
+              }
+            }
+          },
+          "400": {
+            "description": "Dados invalidos",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "403": {
+            "description": "Perfil sem permissao para registrar resultado",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "404": {
+            "description": "WOD ou exercicio nao encontrado para o box",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/results/pr": {
+      "post": {
+        "tags": ["Results"],
+        "summary": "Registra PR direto por exercicio",
+        "description": "Permite ao aluno selecionar um exercicio (via GET /exercises) e salvar um PR sem vincular ao WOD, com comparacao de historico por exerciseId.",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/XBoxIdHeader" }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateExercisePrDto" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "PR salvo com sucesso",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/CreateResultResponse" }
+              }
+            }
+          },
+          "400": {
+            "description": "Dados invalidos",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "403": {
+            "description": "Perfil sem permissao para registrar PR",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "404": {
+            "description": "Exercicio nao encontrado para o box",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users/students": {
+      "get": {
+        "tags": ["Users"],
+        "summary": "Lista todos os alunos do box do usuario autenticado",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/XBoxIdHeader" }],
+        "responses": {
+          "200": {
+            "description": "Lista de alunos retornada com sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/Student" }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token ausente, invalido ou expirado",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users/student": {
+      "post": {
+        "tags": ["Users"],
+        "summary": "Cadastra um aluno no box do usuario autenticado",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/XBoxIdHeader" }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateStudentDto" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Aluno criado com sucesso",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/CreateStudentResponse" }
+              }
+            }
+          },
+          "401": {
+            "description": "Token ausente, invalido ou expirado",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "403": {
+            "description": "Perfil sem permissao para criar aluno",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "400": {
+            "description": "Dados invalidos",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/wods": {
+      "post": {
+        "tags": ["Wods"],
+        "summary": "Cadastra o WOD do box",
+        "description": "Recebe o JSON completo do treino e persiste na colecao wods vinculado ao boxId do ADMIN autenticado.",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/XBoxIdHeader" }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateWodDto" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "WOD criado com sucesso",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/CreateWodResponse" }
+              }
+            }
+          },
+          "400": {
+            "description": "Dados invalidos",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "401": {
+            "description": "Token ausente, invalido ou expirado",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "403": {
+            "description": "Perfil sem permissao para criar WOD",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "409": {
+            "description": "Ja existe WOD para a data informada neste box",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/wods/today": {
+      "get": {
+        "tags": ["Wods"],
+        "summary": "Busca o WOD de hoje do box autenticado",
+        "description": "Retorna o treino da data atual associado ao boxId presente no token JWT, para exibicao no app do aluno.",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/XBoxIdHeader" }],
+        "responses": {
+          "200": {
+            "description": "WOD de hoje retornado com sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    { "$ref": "#/components/schemas/Wod" },
+                    { "type": "null" }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token ausente, invalido ou expirado",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "parameters": {
+      "XBoxIdHeader": {
+        "name": "x-box-id",
+        "in": "header",
+        "required": true,
+        "description": "ID do box selecionado",
+        "schema": {
+          "type": "string",
+          "example": "67ea76a5ac5d89c8bb9d2111"
+        }
+      }
+    },
+    "schemas": {
+      "ObjectId": {
+        "type": "string",
+        "pattern": "^[a-fA-F0-9]{24}$",
+        "example": "67ea76a5ac5d89c8bb9d2111"
+      },
+      "UserRole": {
+        "type": "string",
+        "enum": ["ADMIN", "COACH", "ALUNO"]
+      },
+      "ExerciseCategory": {
+        "type": "string",
+        "enum": ["WEIGHTLIFTING", "GYMNASTICS", "MONOSTRUCTURAL", "ACCESSORY"]
+      },
+      "WodBlockType": {
+        "type": "string",
+        "enum": ["WARMUP", "SKILL", "WOD"]
+      },
+      "ResultScoreKind": {
+        "type": "string",
+        "enum": ["TIME", "LOAD", "UNKNOWN"]
+      },
+      "LoginDto": {
+        "type": "object",
+        "required": ["email", "password"],
+        "properties": {
+          "email": { "type": "string", "format": "email", "example": "admin@box.com" },
+          "password": { "type": "string", "minLength": 8, "example": "Senha@123" }
+        }
+      },
+      "RegisterBoxDto": {
+        "type": "object",
+        "required": [
+          "name",
+          "cnpj",
+          "latitude",
+          "longitude",
+          "geofenceRadius",
+          "adminName",
+          "adminEmail",
+          "adminPassword"
+        ],
+        "properties": {
+          "parentBoxId": { "$ref": "#/components/schemas/ObjectId" },
+          "name": { "type": "string", "minLength": 2, "maxLength": 120, "example": "Cross Box Alpha" },
+          "cnpj": { "type": "string", "pattern": "^\\d{14}$", "example": "12345678000199" },
+          "latitude": { "type": "number", "minimum": -90, "maximum": 90, "example": -23.56447 },
+          "longitude": { "type": "number", "minimum": -180, "maximum": 180, "example": -46.65284 },
+          "geofenceRadius": { "type": "number", "minimum": 1, "maximum": 5000, "example": 100 },
+          "adminName": { "type": "string", "minLength": 2, "maxLength": 120, "example": "Ana Admin" },
+          "adminEmail": { "type": "string", "format": "email", "example": "admin@box.com" },
+          "adminPassword": { "type": "string", "minLength": 8, "example": "Senha@123" }
+        }
+      },
+      "CreateCheckinDto": {
+        "type": "object",
+        "required": ["latitude", "longitude"],
+        "properties": {
+          "latitude": { "type": "number", "minimum": -90, "maximum": 90, "example": -23.56447 },
+          "longitude": { "type": "number", "minimum": -180, "maximum": 180, "example": -46.65284 }
+        }
+      },
+      "CreateExerciseDto": {
+        "type": "object",
+        "required": ["name", "category"],
+        "properties": {
+          "name": { "type": "string", "minLength": 2, "maxLength": 100, "example": "Snatch" },
+          "category": { "$ref": "#/components/schemas/ExerciseCategory" }
+        }
+      },
+      "CreateFeedPostDto": {
+        "type": "object",
+        "required": ["checkinId", "text"],
+        "properties": {
+          "checkinId": { "$ref": "#/components/schemas/ObjectId" },
+          "text": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 1200,
+            "example": "Aula de hoje foi insana. Novo PR no deadlift!"
+          },
+          "photoUrl": {
+            "type": "string",
+            "format": "uri",
+            "example": "http://localhost:3000/uploads/feed/1712086421000-123456789.jpg"
+          }
+        }
+      },
+      "CreateStudentDto": {
+        "type": "object",
+        "required": ["name", "email", "password"],
+        "properties": {
+          "name": { "type": "string", "minLength": 2, "maxLength": 120, "example": "Joao Aluno" },
+          "email": { "type": "string", "format": "email", "example": "joao@aluno.com" },
+          "password": { "type": "string", "minLength": 8, "example": "Aluno@123" }
+        }
+      },
+      "CreateWodBlockDto": {
+        "type": "object",
+        "required": ["type", "title", "content"],
+        "properties": {
+          "type": { "$ref": "#/components/schemas/WodBlockType" },
+          "title": { "type": "string", "minLength": 2, "maxLength": 120, "example": "Warm-up geral" },
+          "content": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 2000,
+            "example": "3 rounds: 20 air squats, 10 inchworms, 200m run"
+          }
+        }
+      },
+      "CreateWodDto": {
+        "type": "object",
+        "required": ["date", "title", "blocks"],
+        "properties": {
+          "date": { "type": "string", "format": "date", "example": "2026-03-31" },
+          "title": { "type": "string", "minLength": 2, "maxLength": 120, "example": "WOD de Terca" },
+          "blocks": {
+            "type": "array",
+            "minItems": 1,
+            "items": { "$ref": "#/components/schemas/CreateWodBlockDto" }
+          }
+        }
+      },
+      "CreateResultDto": {
+        "type": "object",
+        "required": ["wodId", "exerciseId", "score"],
+        "properties": {
+          "wodId": { "$ref": "#/components/schemas/ObjectId" },
+          "exerciseId": { "$ref": "#/components/schemas/ObjectId" },
+          "score": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 50,
+            "example": "95kg",
+            "description": "Score do resultado. Aceita carga (ex: 95, 95kg) ou tempo (ex: 02:34, 00:12:30)."
+          },
+          "autoPostText": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 1200,
+            "example": "Bati PR hoje no WOD! Muito feliz com a evolucao.",
+            "description": "Texto customizado para auto-post no feed quando houver novo PR"
+          }
+        }
+      },
+      "CreateExercisePrDto": {
+        "type": "object",
+        "required": ["exerciseId", "score"],
+        "properties": {
+          "exerciseId": { "$ref": "#/components/schemas/ObjectId" },
+          "score": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 50,
+            "example": "100kg",
+            "description": "Score do PR. Aceita carga (ex: 95, 95kg) ou tempo (ex: 02:34, 00:12:30)."
+          },
+          "autoPostText": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 1200,
+            "example": "PR no squat! Consistencia ta valendo a pena.",
+            "description": "Texto customizado para auto-post no feed quando houver novo PR"
+          }
+        }
+      },
+      "JwtUser": {
+        "type": "object",
+        "required": ["sub", "email", "boxIds", "role"],
+        "properties": {
+          "sub": { "$ref": "#/components/schemas/ObjectId" },
+          "email": { "type": "string", "format": "email" },
+          "boxIds": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/ObjectId" }
+          },
+          "role": { "$ref": "#/components/schemas/UserRole" }
+        }
+      },
+      "SessionResponse": {
+        "type": "object",
+        "required": ["accessToken", "tokenType", "user"],
+        "properties": {
+          "accessToken": { "type": "string", "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." },
+          "tokenType": { "type": "string", "example": "Bearer" },
+          "user": { "$ref": "#/components/schemas/JwtUser" }
+        }
+      },
+      "RegisterBoxResponse": {
+        "allOf": [
+          { "$ref": "#/components/schemas/SessionResponse" },
+          {
+            "type": "object",
+            "required": ["boxId", "adminId", "adminLinkedToExisting", "message"],
+            "properties": {
+              "boxId": { "$ref": "#/components/schemas/ObjectId" },
+              "adminId": { "$ref": "#/components/schemas/ObjectId" },
+              "adminLinkedToExisting": { "type": "boolean", "example": false },
+              "message": {
+                "type": "string",
+                "example": "Box, usuario ADMIN e JWT criados com sucesso"
+              }
+            }
+          }
+        ]
+      },
+      "BoxLocation": {
+        "type": "object",
+        "required": ["type", "coordinates"],
+        "properties": {
+          "type": { "type": "string", "enum": ["Point"] },
+          "coordinates": {
+            "type": "array",
+            "description": "Formato [longitude, latitude]",
+            "minItems": 2,
+            "maxItems": 2,
+            "items": { "type": "number" },
+            "example": [-46.65284, -23.56447]
+          }
+        }
+      },
+      "Box": {
+        "type": "object",
+        "required": ["_id", "name", "cnpj", "location", "geofenceRadius", "createdAt"],
+        "properties": {
+          "_id": { "$ref": "#/components/schemas/ObjectId" },
+          "parentBoxId": { "$ref": "#/components/schemas/ObjectId" },
+          "name": { "type": "string", "example": "Cross Box Alpha" },
+          "cnpj": { "type": "string", "example": "12345678000199" },
+          "location": { "$ref": "#/components/schemas/BoxLocation" },
+          "geofenceRadius": { "type": "number", "example": 100 },
+          "createdAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "CheckinCreateResponse": {
+        "type": "object",
+        "required": ["checkinId", "distanceFromBoxInMeters", "consistency", "message"],
+        "properties": {
+          "checkinId": { "$ref": "#/components/schemas/ObjectId" },
+          "distanceFromBoxInMeters": { "type": "number", "example": 42.8 },
+          "consistency": { "$ref": "#/components/schemas/CheckinConsistencyResult" },
+          "message": { "type": "string", "example": "Check-in realizado com sucesso" }
+        }
+      },
+      "CheckinConsistencyResult": {
+        "type": "object",
+        "required": [
+          "activityStatus",
+          "currentStreak",
+          "longestStreak",
+          "availableFreezes",
+          "totalXp",
+          "xpGained",
+          "freezeUsed",
+          "milestonesUnlocked"
+        ],
+        "properties": {
+          "activityStatus": {
+            "type": "string",
+            "enum": ["counted", "already-counted"]
+          },
+          "currentStreak": { "type": "number", "example": 7 },
+          "longestStreak": { "type": "number", "example": 12 },
+          "availableFreezes": { "type": "number", "example": 1 },
+          "totalXp": { "type": "number", "example": 270 },
+          "xpGained": { "type": "number", "example": 10 },
+          "freezeUsed": { "type": "boolean", "example": false },
+          "milestonesUnlocked": {
+            "type": "array",
+            "items": { "type": "number" },
+            "example": [7]
+          }
+        }
+      },
+      "Checkin": {
+        "type": "object",
+        "required": [
+          "_id",
+          "userId",
+          "boxId",
+          "latitude",
+          "longitude",
+          "distanceFromBoxInMeters",
+          "createdAt"
+        ],
+        "properties": {
+          "_id": { "$ref": "#/components/schemas/ObjectId" },
+          "userId": { "$ref": "#/components/schemas/ObjectId" },
+          "boxId": { "$ref": "#/components/schemas/ObjectId" },
+          "latitude": { "type": "number" },
+          "longitude": { "type": "number" },
+          "distanceFromBoxInMeters": { "type": "number" },
+          "createdAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "Exercise": {
+        "type": "object",
+        "required": ["_id", "name", "category", "isGlobal", "createdAt"],
+        "properties": {
+          "_id": { "$ref": "#/components/schemas/ObjectId" },
+          "name": { "type": "string", "example": "Snatch" },
+          "category": { "$ref": "#/components/schemas/ExerciseCategory" },
+          "isGlobal": { "type": "boolean" },
+          "boxId": { "$ref": "#/components/schemas/ObjectId" },
+          "createdAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "CreateExerciseResponse": {
+        "type": "object",
+        "required": ["exerciseId"],
+        "properties": {
+          "exerciseId": { "$ref": "#/components/schemas/ObjectId" }
+        }
+      },
+      "FeedUploadResponse": {
+        "type": "object",
+        "required": ["url", "filename", "message"],
+        "properties": {
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "example": "http://localhost:3000/uploads/feed/1712086421000-123456789.jpg"
+          },
+          "filename": { "type": "string", "example": "1712086421000-123456789.jpg" },
+          "message": { "type": "string", "example": "Upload realizado com sucesso" }
+        }
+      },
+      "CreateFeedPostResponse": {
+        "type": "object",
+        "required": ["postId", "checkinId", "message"],
+        "properties": {
+          "postId": { "$ref": "#/components/schemas/ObjectId" },
+          "checkinId": { "$ref": "#/components/schemas/ObjectId" },
+          "message": { "type": "string", "example": "Post criado com sucesso" }
+        }
+      },
+      "RewardSummary": {
+        "type": "object",
+        "required": [
+          "currentStreak",
+          "longestStreak",
+          "lastActivityDate",
+          "availableFreezes",
+          "totalXp",
+          "streakState",
+          "daysSinceLastActivity",
+          "nextMilestone"
+        ],
+        "properties": {
+          "currentStreak": { "type": "number", "example": 7 },
+          "longestStreak": { "type": "number", "example": 12 },
+          "lastActivityDate": {
+            "oneOf": [
+              { "type": "string", "format": "date-time" },
+              { "type": "null" }
+            ]
+          },
+          "availableFreezes": { "type": "number", "example": 1 },
+          "totalXp": { "type": "number", "example": 270 },
+          "streakState": {
+            "type": "string",
+            "enum": ["INACTIVE", "ACTIVE", "AT_RISK", "BROKEN"]
+          },
+          "daysSinceLastActivity": {
+            "oneOf": [
+              { "type": "number", "example": 0 },
+              { "type": "null" }
+            ]
+          },
+          "nextMilestone": {
+            "oneOf": [
+              { "type": "number", "example": 30 },
+              { "type": "null" }
+            ]
+          }
+        }
+      },
+      "RewardMilestone": {
+        "type": "object",
+        "required": ["_id", "userId", "boxId", "streakDays", "rewardXp", "rewardFreeze", "unlockedAt"],
+        "properties": {
+          "_id": { "$ref": "#/components/schemas/ObjectId" },
+          "userId": { "$ref": "#/components/schemas/ObjectId" },
+          "boxId": { "$ref": "#/components/schemas/ObjectId" },
+          "streakDays": { "type": "number", "example": 7 },
+          "rewardXp": { "type": "number", "example": 50 },
+          "rewardFreeze": { "type": "number", "example": 1 },
+          "unlockedAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "Student": {
+        "type": "object",
+        "required": ["_id", "boxIds", "name", "email", "role", "createdAt"],
+        "properties": {
+          "_id": { "$ref": "#/components/schemas/ObjectId" },
+          "boxIds": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/ObjectId" }
+          },
+          "name": { "type": "string", "example": "Joao Aluno" },
+          "email": { "type": "string", "format": "email", "example": "joao@aluno.com" },
+          "role": { "$ref": "#/components/schemas/UserRole" },
+          "createdAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "CreateStudentResponse": {
+        "type": "object",
+        "required": ["studentId", "boxId", "role"],
+        "properties": {
+          "studentId": { "$ref": "#/components/schemas/ObjectId" },
+          "boxId": { "$ref": "#/components/schemas/ObjectId" },
+          "role": {
+            "type": "string",
+            "enum": ["ALUNO"],
+            "example": "ALUNO"
+          }
+        }
+      },
+      "WodBlock": {
+        "type": "object",
+        "required": ["type", "title", "content"],
+        "properties": {
+          "type": { "$ref": "#/components/schemas/WodBlockType" },
+          "title": { "type": "string", "example": "Warm-up geral" },
+          "content": { "type": "string", "example": "3 rounds: 20 air squats, 10 inchworms, 200m run" }
+        }
+      },
+      "Wod": {
+        "type": "object",
+        "required": ["_id", "boxId", "date", "title", "blocks", "createdAt"],
+        "properties": {
+          "_id": { "$ref": "#/components/schemas/ObjectId" },
+          "boxId": { "$ref": "#/components/schemas/ObjectId" },
+          "date": { "type": "string", "format": "date-time" },
+          "title": { "type": "string", "example": "WOD de Terca" },
+          "blocks": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/WodBlock" }
+          },
+          "createdAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "CreateWodResponse": {
+        "type": "object",
+        "required": ["wodId", "boxId"],
+        "properties": {
+          "wodId": { "$ref": "#/components/schemas/ObjectId" },
+          "boxId": { "$ref": "#/components/schemas/ObjectId" }
+        }
+      },
+      "CreateResultResponse": {
+        "type": "object",
+        "required": ["resultId", "isNewPR", "scoreKind", "autoFeedPost", "message"],
+        "properties": {
+          "resultId": { "$ref": "#/components/schemas/ObjectId" },
+          "isNewPR": { "type": "boolean", "example": true },
+          "scoreKind": { "$ref": "#/components/schemas/ResultScoreKind" },
+          "autoFeedPost": {
+            "$ref": "#/components/schemas/AutoFeedPostResult"
+          },
+          "message": { "type": "string", "example": "Resultado salvo com sucesso" }
+        }
+      },
+      "AutoFeedPostResult": {
+        "type": "object",
+        "required": ["status"],
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "created",
+              "skipped-no-checkin",
+              "skipped-already-posted",
+              "skipped-no-new-pr"
+            ]
+          },
+          "postId": { "$ref": "#/components/schemas/ObjectId" },
+          "checkinId": { "$ref": "#/components/schemas/ObjectId" }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "oneOf": [
+              { "type": "string" },
+              {
+                "type": "array",
+                "items": { "type": "string" }
+              }
+            ]
+          },
+          "error": { "type": "string", "example": "Bad Request" },
+          "statusCode": { "type": "number", "example": 400 }
+        }
+      }
+    }
+  }
+}
