@@ -23,6 +23,7 @@ import { existsSync, mkdirSync } from 'node:fs';
 import { extname, join } from 'node:path';
 import type { Request } from 'express';
 import { Roles } from '../common/decorators/roles.decorator';
+import { UserRole } from '../common/enums';
 import { BoxContextGuard } from '../common/guards/box-context.guard';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
@@ -74,7 +75,7 @@ export class FeedController {
 
   @Post('upload')
   @UseGuards(RolesGuard)
-  @Roles('ALUNO')
+  @Roles(UserRole.ALUNO)
   @UseInterceptors(
     FileInterceptor('image', {
       storage: multerStorage,
@@ -117,7 +118,7 @@ export class FeedController {
 
   @Post('post')
   @UseGuards(RolesGuard)
-  @Roles('ALUNO')
+  @Roles(UserRole.ALUNO)
   @ApiOperation({
     summary: 'Cria post no feed do box',
     description:

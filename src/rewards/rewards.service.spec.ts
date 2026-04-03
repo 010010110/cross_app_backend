@@ -1,4 +1,5 @@
 import { ObjectId } from 'mongodb';
+import { CheckinActivityStatus } from '../common/enums';
 import { RewardsService } from './rewards.service';
 
 class MockCollection<T extends { _id?: { toHexString(): string } }> {
@@ -125,7 +126,7 @@ describe('RewardsService', () => {
       new Date('2026-04-02T10:00:00.000Z'),
     );
 
-    expect(result.activityStatus).toBe('counted');
+    expect(result.activityStatus).toBe(CheckinActivityStatus.COUNTED);
     expect(result.currentStreak).toBe(1);
     expect(result.totalXp).toBe(10);
   });
@@ -143,7 +144,7 @@ describe('RewardsService', () => {
       new Date('2026-04-02T18:00:00.000Z'),
     );
 
-    expect(result.activityStatus).toBe('already-counted');
+    expect(result.activityStatus).toBe(CheckinActivityStatus.ALREADY_COUNTED);
     expect(result.xpGained).toBe(0);
     expect(result.currentStreak).toBe(1);
   });

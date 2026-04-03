@@ -8,6 +8,7 @@ import {
 } from '@nestjs/swagger';
 import { Request } from 'express';
 import { Roles } from '../common/decorators/roles.decorator';
+import { UserRole } from '../common/enums';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { BoxContextGuard } from '../common/guards/box-context.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
@@ -29,7 +30,7 @@ export class WodsController {
 
   @Post()
   @UseGuards(RolesGuard)
-  @Roles('ADMIN')
+  @Roles(UserRole.ADMIN)
   @ApiOperation({
     summary: 'Cadastra o WOD do box',
     description:

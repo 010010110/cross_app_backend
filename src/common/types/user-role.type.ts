@@ -1,1 +1,1 @@
-export type UserRole = 'ADMIN' | 'COACH' | 'ALUNO';
+export { UserRole } from '../enums/user-role.enum';

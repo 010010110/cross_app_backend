@@ -1,6 +1,7 @@
 import { ObjectId } from 'mongodb';
+import { RewardXpLedgerType } from '../../common/enums';
 
-export type RewardXpLedgerType = 'CHECKIN_DAILY' | 'STREAK_MILESTONE' | 'FREEZE_CONSUMED';
+export { RewardXpLedgerType };
 
 export interface RewardXpLedger {
   _id?: ObjectId;

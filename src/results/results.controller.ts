@@ -8,6 +8,7 @@ import {
 } from '@nestjs/swagger';
 import { Request } from 'express';
 import { Roles } from '../common/decorators/roles.decorator';
+import { UserRole } from '../common/enums';
 import { BoxContextGuard } from '../common/guards/box-context.guard';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
@@ -30,7 +31,7 @@ export class ResultsController {
 
   @Post()
   @UseGuards(RolesGuard)
-  @Roles('ALUNO')
+  @Roles(UserRole.ALUNO)
   @ApiOperation({
     summary: 'Registra resultado de treino e identifica novo PR',
     description:
@@ -46,7 +47,7 @@ export class ResultsController {
 
   @Post('pr')
   @UseGuards(RolesGuard)
-  @Roles('ALUNO')
+  @Roles(UserRole.ALUNO)
   @ApiOperation({
     summary: 'Registra PR direto por exercicio',
     description:

@@ -1,15 +1,16 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { Db, ObjectId } from 'mongodb';
 import { MONGO_CLIENT } from '../database/database.constants';
+import { AutoPrPostStatus, ResultScoreKind } from '../common/enums';
 import { Exercise } from '../exercises/interfaces/exercise.interface';
 import { FeedService } from '../feed/feed.service';
 import { Wod } from '../wods/interfaces/wod.interface';
 import { CreateExercisePrDto } from './dto/create-exercise-pr.dto';
 import { CreateResultDto } from './dto/create-result.dto';
-import { Result, ResultScoreKind } from './interfaces/result.interface';
+import { Result } from './interfaces/result.interface';
 
 interface ParsedScore {
-  kind: Exclude<ResultScoreKind, 'UNKNOWN'>;
+  kind: Exclude<ResultScoreKind, ResultScoreKind.UNKNOWN>;
   value: number;
 }
 
@@ -43,7 +44,7 @@ export class ResultsService {
       wodId: new ObjectId(dto.wodId),
       exerciseId: new ObjectId(dto.exerciseId),
       score: dto.score,
-      scoreKind: currentParsedScore?.kind ?? 'UNKNOWN',
+      scoreKind: currentParsedScore?.kind ?? ResultScoreKind.UNKNOWN,
       isNewPR,
       createdAt: new Date(),
     };
@@ -89,7 +90,7 @@ export class ResultsService {
       boxId: new ObjectId(boxId),
       exerciseId: new ObjectId(dto.exerciseId),
       score: dto.score,
-      scoreKind: currentParsedScore?.kind ?? 'UNKNOWN',
+      scoreKind: currentParsedScore?.kind ?? ResultScoreKind.UNKNOWN,
       isNewPR,
       createdAt: new Date(),
     };
@@ -148,7 +149,7 @@ export class ResultsService {
     customText?: string;
   }) {
     if (!params.isNewPR) {
-      return { status: 'skipped-no-new-pr' as const };
+      return { status: AutoPrPostStatus.SKIPPED_NO_NEW_PR };
     }
 
     const finalText = this.resolveAutoPostText(
@@ -191,7 +192,7 @@ export class ResultsService {
       return true;
     }
 
-    if (currentScore.kind === 'TIME') {
+    if (currentScore.kind === ResultScoreKind.TIME) {
       const bestPreviousTime = Math.min(...previousComparableScores);
       return currentScore.value < bestPreviousTime;
     }
@@ -205,7 +206,7 @@ export class ResultsService {
 
     const parsedTime = this.parseTimeToSeconds(normalized);
     if (parsedTime !== null) {
-      return { kind: 'TIME', value: parsedTime };
+      return { kind: ResultScoreKind.TIME, value: parsedTime };
     }
 
     const numericMatch = normalized.match(/-?\d+(?:\.\d+)?/);
@@ -213,7 +214,7 @@ export class ResultsService {
       return null;
     }
 
-    return { kind: 'LOAD', value: Number(numericMatch[0]) };
+    return { kind: ResultScoreKind.LOAD, value: Number(numericMatch[0]) };
   }
 
   private parseTimeToSeconds(raw: string): number | null {

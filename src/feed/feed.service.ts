@@ -1,11 +1,12 @@
 import { BadRequestException, ConflictException, Inject, Injectable } from '@nestjs/common';
 import { Db, ObjectId } from 'mongodb';
 import { MONGO_CLIENT } from '../database/database.constants';
+import { AutoPrPostStatus, FeedPostSource } from '../common/enums';
 import { Checkin } from '../checkins/interfaces/checkin.interface';
 import { CreateFeedPostDto } from './dto/create-feed-post.dto';
 import { Post } from './interfaces/post.interface';
 
-export type AutoPrPostStatus = 'created' | 'skipped-no-checkin' | 'skipped-already-posted';
+export { AutoPrPostStatus };
 
 export interface AutoPrPostResult {
   status: AutoPrPostStatus;
@@ -46,7 +47,7 @@ export class FeedService {
       checkinId: normalizedCheckinId,
       text: dto.text,
       photoUrl: dto.photoUrl,
-      source: 'MANUAL',
+      source: FeedPostSource.MANUAL,
       createdAt: new Date(),
     };
 
@@ -79,7 +80,7 @@ export class FeedService {
     );
 
     if (!latestCheckin?._id) {
-      return { status: 'skipped-no-checkin' };
+      return { status: AutoPrPostStatus.SKIPPED_NO_CHECKIN };
     }
 
     const existingPostForCheckin = await this.db.collection<Post>('posts').findOne({
@@ -88,7 +89,7 @@ export class FeedService {
 
     if (existingPostForCheckin) {
       return {
-        status: 'skipped-already-posted',
+        status: AutoPrPostStatus.SKIPPED_ALREADY_POSTED,
         checkinId: latestCheckin._id,
       };
     }
@@ -98,7 +99,7 @@ export class FeedService {
       boxId: normalizedBoxId,
       checkinId: latestCheckin._id,
       text: params.text,
-      source: 'PR_AUTO',
+      source: FeedPostSource.PR_AUTO,
       resultId: params.resultId,
       createdAt: new Date(),
     };
@@ -106,7 +107,7 @@ export class FeedService {
     const insertPostResult = await this.db.collection<Post>('posts').insertOne(post);
 
     return {
-      status: 'created',
+      status: AutoPrPostStatus.CREATED,
       postId: insertPostResult.insertedId,
       checkinId: latestCheckin._id,
     };

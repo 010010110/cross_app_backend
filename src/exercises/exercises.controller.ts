@@ -8,6 +8,7 @@ import {
 } from '@nestjs/swagger';
 import { Request } from 'express';
 import { Roles } from '../common/decorators/roles.decorator';
+import { UserRole } from '../common/enums';
 import { JwtPayload } from '../common/interfaces/jwt-payload.interface';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { BoxContextGuard } from '../common/guards/box-context.guard';
@@ -41,7 +42,7 @@ export class ExercisesController {
 
   @Post()
   @UseGuards(RolesGuard)
-  @Roles('ADMIN')
+  @Roles(UserRole.ADMIN)
   @ApiOperation({
     summary: 'Cria exercicio customizado no box',
     description:

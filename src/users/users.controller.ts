@@ -8,11 +8,12 @@ import {
 } from '@nestjs/swagger';
 import { Request } from 'express';
 import { Roles } from '../common/decorators/roles.decorator';
-import { JwtPayload } from '../common/interfaces/jwt-payload.interface';
-import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import { UserRole } from '../common/enums';
 import { BoxContextGuard } from '../common/guards/box-context.guard';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
-import { CreateStudentDto } from './dto/create-student.dto';
+import { JwtPayload } from '../common/interfaces/jwt-payload.interface';
+import { UseEnrollmentTokenDto } from './dto/use-enrollment-token.dto';
 import { UsersService } from './users.service';
 
 interface AuthenticatedRequest extends Request {
@@ -21,13 +22,14 @@ interface AuthenticatedRequest extends Request {
 
 @ApiTags('Users')
 @ApiBearerAuth()
-@ApiHeader({ name: 'x-box-id', description: 'ID do box selecionado', required: true })
-@UseGuards(JwtAuthGuard, BoxContextGuard)
+@UseGuards(JwtAuthGuard)
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Get('students')
+  @UseGuards(BoxContextGuard)
+  @ApiHeader({ name: 'x-box-id', description: 'ID do box selecionado', required: true })
   @ApiOperation({ summary: 'Lista todos os alunos do box do usuario autenticado' })
   @ApiResponse({ status: 200, description: 'Lista de alunos retornada com sucesso' })
   @ApiResponse({ status: 401, description: 'Token ausente, invalido ou expirado' })
@@ -35,24 +37,29 @@ export class UsersController {
     return this.usersService.findStudentsByBox(request.user.boxId!);
   }
 
-  @Post('student')
+  @Post('me/enrollment-token')
   @UseGuards(RolesGuard)
-  @Roles('ADMIN', 'COACH')
-  @ApiOperation({ summary: 'Cadastra um aluno no box do usuario autenticado' })
-  @ApiResponse({ status: 201, description: 'Aluno criado com sucesso' })
-  @ApiResponse({ status: 401, description: 'Token ausente, invalido ou expirado' })
-  @ApiResponse({ status: 403, description: 'Perfil sem permissao para criar aluno' })
-  @ApiResponse({ status: 400, description: 'Dados invalidos' })
-  async createStudent(
-    @Req() request: AuthenticatedRequest,
-    @Body() createStudentDto: CreateStudentDto,
-  ) {
-    const studentId = await this.usersService.createStudent(request.user.boxId!, createStudentDto);
+  @Roles(UserRole.ALUNO)
+  @ApiOperation({ summary: 'Gera token temporario do aluno para matricula em um box' })
+  @ApiResponse({ status: 201, description: 'Token gerado com sucesso' })
+  @ApiResponse({ status: 403, description: 'Perfil sem permissao para gerar token' })
+  async createEnrollmentToken(@Req() request: AuthenticatedRequest) {
+    return this.usersService.createEnrollmentToken(request.user.sub);
+  }
 
-    return {
-      studentId,
-      boxId: request.user.boxId!,
-      role: 'ALUNO',
-    };
+  @Post('enroll')
+  @UseGuards(BoxContextGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.COACH)
+  @ApiHeader({ name: 'x-box-id', description: 'ID do box selecionado', required: true })
+  @ApiOperation({ summary: 'Vincula um aluno ao box atual usando o token temporario do aluno' })
+  @ApiResponse({ status: 201, description: 'Aluno vinculado ao box com sucesso' })
+  @ApiResponse({ status: 400, description: 'Token invalido, expirado ou ja utilizado' })
+  @ApiResponse({ status: 403, description: 'Perfil sem permissao para matricular aluno' })
+  @ApiResponse({ status: 409, description: 'Aluno ja matriculado neste box' })
+  async enrollStudent(
+    @Req() request: AuthenticatedRequest,
+    @Body() useEnrollmentTokenDto: UseEnrollmentTokenDto,
+  ) {
+    return this.usersService.enrollStudentWithToken(request.user.boxId!, useEnrollmentTokenDto.token);
   }
 }

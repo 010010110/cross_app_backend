@@ -3,7 +3,8 @@ import { Db, ObjectId } from 'mongodb';
 import { MONGO_CLIENT } from '../database/database.constants';
 import { RewardMilestone } from './interfaces/reward-milestone.interface';
 import { RewardStreak } from './interfaces/reward-streak.interface';
-import { RewardXpLedger, RewardXpLedgerType } from './interfaces/reward-xp-ledger.interface';
+import { CheckinActivityStatus, RewardStreakState, RewardXpLedgerType } from '../common/enums';
+import { RewardXpLedger } from './interfaces/reward-xp-ledger.interface';
 
 const DAILY_CHECKIN_XP = 10;
 const MAX_FREEZES = 2;
@@ -12,8 +13,6 @@ const MILESTONES = [
   { streakDays: 30, rewardXp: 200, rewardFreeze: 1 },
   { streakDays: 100, rewardXp: 1000, rewardFreeze: 1 },
 ] as const;
-
-type RewardStreakState = 'INACTIVE' | 'ACTIVE' | 'AT_RISK' | 'BROKEN';
 
 @Injectable()
 export class RewardsService {
@@ -44,10 +43,10 @@ export class RewardsService {
       };
 
       await streakCollection.insertOne(createdStreak);
-      await this.createXpLedger(normalizedUserId, normalizedBoxId, 'CHECKIN_DAILY', DAILY_CHECKIN_XP);
+      await this.createXpLedger(normalizedUserId, normalizedBoxId, RewardXpLedgerType.CHECKIN_DAILY, DAILY_CHECKIN_XP);
 
       return {
-        activityStatus: 'counted' as const,
+        activityStatus: CheckinActivityStatus.COUNTED,
         currentStreak: createdStreak.currentStreak,
         longestStreak: createdStreak.longestStreak,
         availableFreezes: createdStreak.availableFreezes,
@@ -62,7 +61,7 @@ export class RewardsService {
 
     if (lastActivityDay.getTime() === activityDay.getTime()) {
       return {
-        activityStatus: 'already-counted' as const,
+        activityStatus: CheckinActivityStatus.ALREADY_COUNTED,
         currentStreak: streak.currentStreak,
         longestStreak: streak.longestStreak,
         availableFreezes: streak.availableFreezes,
@@ -88,7 +87,7 @@ export class RewardsService {
       longestStreak = Math.max(streak.longestStreak, currentStreak);
       availableFreezes = streak.availableFreezes - 1;
       freezeUsed = true;
-      await this.createXpLedger(normalizedUserId, normalizedBoxId, 'FREEZE_CONSUMED', 0);
+      await this.createXpLedger(normalizedUserId, normalizedBoxId, RewardXpLedgerType.FREEZE_CONSUMED, 0);
     }
 
     const milestoneUnlocks = await this.unlockMilestones({
@@ -114,12 +113,12 @@ export class RewardsService {
       },
     );
 
-    await this.createXpLedger(normalizedUserId, normalizedBoxId, 'CHECKIN_DAILY', DAILY_CHECKIN_XP, {
+    await this.createXpLedger(normalizedUserId, normalizedBoxId, RewardXpLedgerType.CHECKIN_DAILY, DAILY_CHECKIN_XP, {
       streakDays: currentStreak,
     });
 
     return {
-      activityStatus: 'counted' as const,
+      activityStatus: CheckinActivityStatus.COUNTED,
       currentStreak,
       longestStreak,
       availableFreezes,
@@ -143,7 +142,7 @@ export class RewardsService {
         lastActivityDate: null,
         availableFreezes: 0,
         totalXp: 0,
-        streakState: 'INACTIVE' as RewardStreakState,
+        streakState: RewardStreakState.INACTIVE,
         daysSinceLastActivity: null,
         nextMilestone: MILESTONES[0].streakDays,
       };
@@ -153,7 +152,7 @@ export class RewardsService {
     const lastActivityDay = this.normalizeToDayStart(streak.lastActivityDate);
     const daysSinceLastActivity = this.diffInDays(lastActivityDay, currentDay);
     const streakState = this.getStreakState(daysSinceLastActivity, streak.availableFreezes);
-    const effectiveCurrentStreak = streakState === 'BROKEN' ? 0 : streak.currentStreak;
+    const effectiveCurrentStreak = streakState === RewardStreakState.BROKEN ? 0 : streak.currentStreak;
     const nextMilestone = MILESTONES.find((item) => item.streakDays > effectiveCurrentStreak)?.streakDays ?? null;
 
     return {
@@ -214,7 +213,7 @@ export class RewardsService {
       };
 
       await milestonesCollection.insertOne(rewardMilestone);
-      await this.createXpLedger(params.userId, params.boxId, 'STREAK_MILESTONE', milestone.rewardXp, {
+      await this.createXpLedger(params.userId, params.boxId, RewardXpLedgerType.STREAK_MILESTONE, milestone.rewardXp, {
         streakDays: milestone.streakDays,
         rewardFreeze: milestone.rewardFreeze,
       });
@@ -258,13 +257,13 @@ export class RewardsService {
 
   private getStreakState(daysSinceLastActivity: number, availableFreezes: number): RewardStreakState {
     if (daysSinceLastActivity <= 1) {
-      return 'ACTIVE';
+      return RewardStreakState.ACTIVE;
     }
 
     if (daysSinceLastActivity === 2 && availableFreezes > 0) {
-      return 'AT_RISK';
+      return RewardStreakState.AT_RISK;
     }
 
-    return 'BROKEN';
+    return RewardStreakState.BROKEN;
   }
 }

@@ -1,10 +1,7 @@
 import { ObjectId } from 'mongodb';
+import { WodBlockType } from '../../common/enums';
 
-export enum WodBlockType {
-  WARMUP = 'WARMUP',
-  SKILL = 'SKILL',
-  WOD = 'WOD',
-}
+export { WodBlockType };
 
 export interface WodBlock {
   type: WodBlockType;

@@ -1,4 +1,5 @@
 import { ObjectId } from 'mongodb';
+import { FeedPostSource } from '../../common/enums';
 
 export interface Post {
   _id?: ObjectId;
@@ -7,7 +8,7 @@ export interface Post {
   checkinId: ObjectId;
   text: string;
   photoUrl?: string;
-  source?: 'MANUAL' | 'PR_AUTO';
+  source?: FeedPostSource;
   resultId?: ObjectId;
   createdAt: Date;
 }

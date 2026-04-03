@@ -3,8 +3,9 @@ import { Db, ObjectId } from 'mongodb';
 import { AuthService } from '../auth/auth.service';
 import { Box } from '../common/interfaces/box.interface';
 import { MONGO_CLIENT } from '../database/database.constants';
-import { RegisterBoxDto } from './dto/register-box.dto';
 import { UsersService } from '../users/users.service';
+import { FindNearbyBoxesDto } from './dto/find-nearby-boxes.dto';
+import { RegisterBoxDto } from './dto/register-box.dto';
 
 @Injectable()
 export class BoxesService {
@@ -99,5 +100,60 @@ export class BoxesService {
       .collection<Box>('boxes')
       .find({ _id: { $in: boxObjectIds } })
       .toArray();
+  }
+
+  async findNearbyByLocation(userId: string, query: FindNearbyBoxesDto) {
+    const [user, boxes] = await Promise.all([
+      this.usersService.findById(userId),
+      this.db.collection<Box>('boxes').find().toArray(),
+    ]);
+
+    return boxes
+      .map((box) => {
+        const [boxLongitude, boxLatitude] = box.location.coordinates;
+        const distanceInMeters = this.calculateDistanceInMeters(
+          query.latitude,
+          query.longitude,
+          boxLatitude,
+          boxLongitude,
+        );
+
+        return {
+          boxId: box._id,
+          name: box.name,
+          cnpj: box.cnpj,
+          latitude: boxLatitude,
+          longitude: boxLongitude,
+          geofenceRadius: box.geofenceRadius,
+          distanceInMeters,
+          isStudentRegistered: user.boxIds.some((registeredBoxId) => registeredBoxId.equals(box._id!)),
+        };
+      })
+      .sort((left, right) => left.distanceInMeters - right.distanceInMeters);
+  }
+
+  private calculateDistanceInMeters(
+    originLatitude: number,
+    originLongitude: number,
+    destinationLatitude: number,
+    destinationLongitude: number,
+  ): number {
+    const earthRadiusInMeters = 6371000;
+    const toRadians = (degrees: number): number => (degrees * Math.PI) / 180;
+    const latitudeDiff = toRadians(destinationLatitude - originLatitude);
+    const longitudeDiff = toRadians(destinationLongitude - originLongitude);
+    const originLatitudeInRadians = toRadians(originLatitude);
+    const destinationLatitudeInRadians = toRadians(destinationLatitude);
+
+    const a =
+      Math.sin(latitudeDiff / 2) * Math.sin(latitudeDiff / 2) +
+      Math.cos(originLatitudeInRadians) *
+        Math.cos(destinationLatitudeInRadians) *
+        Math.sin(longitudeDiff / 2) *
+        Math.sin(longitudeDiff / 2);
+
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+    return earthRadiusInMeters * c;
   }
 }

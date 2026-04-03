@@ -1,8 +1,9 @@
-import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Request } from 'express';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { JwtPayload } from '../common/interfaces/jwt-payload.interface';
+import { FindNearbyBoxesDto } from './dto/find-nearby-boxes.dto';
 import { RegisterBoxDto } from './dto/register-box.dto';
 import { BoxesService } from './boxes.service';
 
@@ -25,6 +26,16 @@ export class BoxesController {
   @ApiResponse({ status: 400, description: 'Dados invalidos ou duplicados' })
   async register(@Body() registerBoxDto: RegisterBoxDto) {
     return this.boxesService.register(registerBoxDto);
+  }
+
+  @Get('nearby')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Lista academias proximas com base na latitude e longitude do usuario' })
+  @ApiResponse({ status: 200, description: 'Lista de academias proximas retornada com sucesso' })
+  @ApiResponse({ status: 401, description: 'Token ausente, invalido ou expirado' })
+  async findNearby(@Req() request: AuthenticatedRequest, @Query() query: FindNearbyBoxesDto) {
+    return this.boxesService.findNearbyByLocation(request.user.sub, query);
   }
 
   @Get('mine')

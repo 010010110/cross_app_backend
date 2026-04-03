@@ -1,11 +1,7 @@
 import { ObjectId } from 'mongodb';
+import { ExerciseCategory } from '../../common/enums';
 
-export enum ExerciseCategory {
-  WEIGHTLIFTING = 'WEIGHTLIFTING',
-  GYMNASTICS = 'GYMNASTICS',
-  MONOSTRUCTURAL = 'MONOSTRUCTURAL',
-  ACCESSORY = 'ACCESSORY',
-}
+export { ExerciseCategory };
 
 export interface Exercise {
   _id?: ObjectId;

@@ -1,22 +1,39 @@
 import { ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { Db, ObjectId } from 'mongodb';
-import { MONGO_CLIENT } from '../database/database.constants';
 import { Box } from '../common/interfaces/box.interface';
+import { User } from '../common/interfaces/user.interface';
+import { MONGO_CLIENT } from '../database/database.constants';
 import { RewardsService } from '../rewards/rewards.service';
 import { CreateCheckinDto } from './dto/create-checkin.dto';
 import { Checkin } from './interfaces/checkin.interface';
 
 @Injectable()
 export class CheckinsService {
-  private static readonly CHECKIN_RADIUS_METERS = 100;
-
   constructor(
     @Inject(MONGO_CLIENT) private readonly db: Db,
     private readonly rewardsService: RewardsService,
   ) {}
 
   async create(userId: string, boxId: string, dto: CreateCheckinDto) {
-    const box = await this.db.collection<Box>('boxes').findOne({ _id: new ObjectId(boxId) });
+    if (!ObjectId.isValid(boxId)) {
+      throw new ForbiddenException('Header x-box-id ausente ou invalido');
+    }
+
+    const normalizedUserId = new ObjectId(userId);
+    const normalizedBoxId = new ObjectId(boxId);
+    const user = await this.db.collection<User>('users').findOne({ _id: normalizedUserId });
+
+    if (!user) {
+      throw new NotFoundException('Usuario nao encontrado');
+    }
+
+    if (!user.boxIds.some((registeredBoxId) => registeredBoxId.equals(normalizedBoxId))) {
+      throw new ForbiddenException(
+        'Voce ainda nao esta cadastrado como aluno desta academia. Procure o administrador para concluir seu cadastro.',
+      );
+    }
+
+    const box = await this.db.collection<Box>('boxes').findOne({ _id: normalizedBoxId });
 
     if (!box) {
       throw new NotFoundException('Box nao encontrado');
@@ -31,13 +48,13 @@ export class CheckinsService {
       boxLongitude,
     );
 
-    if (distanceFromBoxInMeters > CheckinsService.CHECKIN_RADIUS_METERS) {
+    if (distanceFromBoxInMeters > box.geofenceRadius) {
       throw new ForbiddenException('Voce esta fora do raio permitido para check-in');
     }
 
     const checkin: Checkin = {
-      userId: new ObjectId(userId),
-      boxId: new ObjectId(boxId),
+      userId: normalizedUserId,
+      boxId: normalizedBoxId,
       latitude: dto.latitude,
       longitude: dto.longitude,
       distanceFromBoxInMeters,

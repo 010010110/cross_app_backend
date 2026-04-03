@@ -1,6 +1,7 @@
 import { ObjectId } from 'mongodb';
+import { ResultScoreKind } from '../../common/enums';
 
-export type ResultScoreKind = 'TIME' | 'LOAD' | 'UNKNOWN';
+export { ResultScoreKind };
 
 export interface Result {
   _id?: ObjectId;
