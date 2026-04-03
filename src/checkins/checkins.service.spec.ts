@@ -101,6 +101,7 @@ class InsertCollection<T extends { _id?: ObjectId }> {
 describe('CheckinsService', () => {
   const userId = new ObjectId('67ea76a5ac5d89c8bb9d2111');
   const boxId = new ObjectId('67ea76a5ac5d89c8bb9d2222');
+  const classId = new ObjectId('67ea76a5ac5d89c8bb9d3333');
   const users: Array<Record<string, unknown>> = [];
   const boxes: Array<Record<string, unknown>> = [];
   const checkins: Array<Record<string, unknown>> = [];
@@ -116,6 +117,23 @@ describe('CheckinsService', () => {
       freezeUsed: false,
       milestonesUnlocked: [],
     }),
+  };
+
+  const classesService = {
+    findByIdInBox: jest.fn().mockResolvedValue({
+      _id: classId,
+      boxId,
+      name: 'Turma das 7h',
+      weekDays: ['MONDAY'],
+      startTime: '07:00',
+      endTime: '08:00',
+      createdAt: new Date(),
+    }),
+    isNowInsideClassWindow: jest.fn().mockReturnValue(true),
+  };
+
+  const wodsService = {
+    findTodayByBox: jest.fn().mockResolvedValue(null),
   };
 
   const db = {
@@ -143,7 +161,16 @@ describe('CheckinsService', () => {
     boxes.length = 0;
     checkins.length = 0;
     rewardsService.recordCheckinActivity.mockClear();
-    service = new CheckinsService(db as never, rewardsService as never);
+    classesService.findByIdInBox.mockClear();
+    classesService.isNowInsideClassWindow.mockClear();
+    classesService.isNowInsideClassWindow.mockReturnValue(true);
+    wodsService.findTodayByBox.mockClear();
+    service = new CheckinsService(
+      db as never,
+      rewardsService as never,
+      classesService as never,
+      wodsService as never,
+    );
   });
 
   it('blocks checkin when user is not registered in the selected box', async () => {
@@ -168,6 +195,7 @@ describe('CheckinsService', () => {
 
     await expect(
       service.create(userId.toHexString(), boxId.toHexString(), {
+        classId: classId.toHexString(),
         latitude: -23.56447,
         longitude: -46.65284,
       }),
@@ -197,6 +225,7 @@ describe('CheckinsService', () => {
     });
 
     const result = await service.create(userId.toHexString(), boxId.toHexString(), {
+      classId: classId.toHexString(),
       latitude: -23.56447,
       longitude: -46.65284,
     });
@@ -207,6 +236,10 @@ describe('CheckinsService', () => {
       userId.toHexString(),
       boxId.toHexString(),
       expect.any(Date),
+    );
+    expect(classesService.findByIdInBox).toHaveBeenCalledWith(
+      boxId.toHexString(),
+      classId.toHexString(),
     );
   });
 
@@ -232,9 +265,41 @@ describe('CheckinsService', () => {
 
     await expect(
       service.create(userId.toHexString(), boxId.toHexString(), {
+        classId: classId.toHexString(),
         latitude: -23.5642,
         longitude: -46.65284,
       }),
     ).rejects.toBeInstanceOf(ForbiddenException);
+  });
+
+  it('blocks checkin when selected class is outside current class window', async () => {
+    users.push({
+      _id: userId,
+      boxIds: [boxId],
+      name: 'Aluno',
+      email: 'aluno@teste.com',
+      passwordHash: 'hash',
+      role: 'ALUNO',
+      createdAt: new Date(),
+    });
+
+    boxes.push({
+      _id: boxId,
+      name: 'Box Alpha',
+      cnpj: '12345678000199',
+      location: { type: 'Point', coordinates: [-46.65284, -23.56447] },
+      geofenceRadius: 150,
+      createdAt: new Date(),
+    });
+
+    classesService.isNowInsideClassWindow.mockReturnValue(false);
+
+    await expect(
+      service.create(userId.toHexString(), boxId.toHexString(), {
+        classId: classId.toHexString(),
+        latitude: -23.56447,
+        longitude: -46.65284,
+      }),
+    ).rejects.toThrow('Check-in permitido apenas no horario da aula selecionada');
   });
 });

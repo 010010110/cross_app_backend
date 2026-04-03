@@ -26,7 +26,7 @@ export class CheckinsController {
   @ApiOperation({
     summary: 'Realiza check-in por geolocalizacao no box',
     description:
-      'Permite check-in apenas quando o atleta estiver a menos de geofenceRadius metros das coordenadas do box e ja estiver matriculado nele.',
+      'Permite check-in apenas quando o atleta estiver a menos de geofenceRadius metros das coordenadas do box, matriculado nele e dentro da janela de horario da aula selecionada.',
   })
   @ApiResponse({ status: 201, description: 'Check-in realizado com sucesso' })
   @ApiResponse({ status: 400, description: 'Dados invalidos para realizacao de check-in' })

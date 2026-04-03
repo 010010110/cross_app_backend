@@ -1,5 +1,6 @@
 export { AutoPrPostStatus } from './auto-pr-post-status.enum';
 export { CheckinActivityStatus } from './checkin-activity-status.enum';
+export { ClassWeekday } from './class-weekday.enum';
 export { ExerciseCategory } from './exercise-category.enum';
 export { FeedPostSource } from './feed-post-source.enum';
 export { ResultScoreKind } from './result-score-kind.enum';

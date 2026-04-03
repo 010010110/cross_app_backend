@@ -1,9 +1,11 @@
 import { ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { Db, ObjectId } from 'mongodb';
+import { ClassesService } from '../classes/classes.service';
 import { Box } from '../common/interfaces/box.interface';
 import { User } from '../common/interfaces/user.interface';
 import { MONGO_CLIENT } from '../database/database.constants';
 import { RewardsService } from '../rewards/rewards.service';
+import { WodsService } from '../wods/wods.service';
 import { CreateCheckinDto } from './dto/create-checkin.dto';
 import { Checkin } from './interfaces/checkin.interface';
 
@@ -12,6 +14,8 @@ export class CheckinsService {
   constructor(
     @Inject(MONGO_CLIENT) private readonly db: Db,
     private readonly rewardsService: RewardsService,
+    private readonly classesService: ClassesService,
+    private readonly wodsService: WodsService,
   ) {}
 
   async create(userId: string, boxId: string, dto: CreateCheckinDto) {
@@ -52,9 +56,16 @@ export class CheckinsService {
       throw new ForbiddenException('Voce esta fora do raio permitido para check-in');
     }
 
+    const classSchedule = await this.classesService.findByIdInBox(boxId, dto.classId);
+
+    if (!this.classesService.isNowInsideClassWindow(classSchedule)) {
+      throw new ForbiddenException('Check-in permitido apenas no horario da aula selecionada');
+    }
+
     const checkin: Checkin = {
       userId: normalizedUserId,
       boxId: normalizedBoxId,
+      classId: new ObjectId(dto.classId),
       latitude: dto.latitude,
       longitude: dto.longitude,
       distanceFromBoxInMeters,
@@ -67,11 +78,19 @@ export class CheckinsService {
       boxId,
       checkin.createdAt,
     );
+    const wod = await this.wodsService.findTodayByBox(boxId);
 
     return {
       checkinId: result.insertedId,
       distanceFromBoxInMeters,
       consistency,
+      class: {
+        classId: classSchedule._id,
+        name: classSchedule.name,
+        startTime: classSchedule.startTime,
+        endTime: classSchedule.endTime,
+      },
+      wod,
       message: 'Check-in realizado com sucesso',
     };
   }

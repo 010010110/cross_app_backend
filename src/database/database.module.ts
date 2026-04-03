@@ -22,6 +22,21 @@ import { MONGO_CLIENT } from './database.constants';
           // Index might already exist, ignore error
         });
 
+        // Enrollment token indexes (20s OTP-like flow + automatic expiration)
+        await db
+          .collection('enrollment_tokens')
+          .createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 })
+          .catch(() => {
+            // Index might already exist, ignore error
+          });
+
+        await db
+          .collection('enrollment_tokens')
+          .createIndex({ token: 1, usedAt: 1, expiresAt: 1 })
+          .catch(() => {
+            // Index might already exist, ignore error
+          });
+
         return db;
       },
     },

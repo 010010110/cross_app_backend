@@ -4,6 +4,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
 import { BoxesModule } from './boxes/boxes.module';
+import { ClassesModule } from './classes/classes.module';
 import { CheckinsModule } from './checkins/checkins.module';
 import { DatabaseModule } from './database/database.module';
 import { ExercisesModule } from './exercises/exercises.module';
@@ -21,6 +22,7 @@ import { WodsModule } from './wods/wods.module';
     DatabaseModule,
     AuthModule,
     BoxesModule,
+    ClassesModule,
     UsersModule,
     ExercisesModule,
     WodsModule,

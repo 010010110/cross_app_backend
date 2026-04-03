@@ -6,7 +6,7 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { randomBytes } from 'node:crypto';
+import { randomInt } from 'node:crypto';
 import { compare, hash } from 'bcryptjs';
 import { Db, ObjectId } from 'mongodb';
 import { User } from '../common/interfaces/user.interface';
@@ -17,7 +17,9 @@ import { EnrollmentToken } from './interfaces/enrollment-token.interface';
 
 @Injectable()
 export class UsersService {
-  private static readonly ENROLLMENT_TOKEN_DURATION_IN_MS = 60 * 60 * 1000;
+  private static readonly ENROLLMENT_TOKEN_DURATION_IN_MS = 10 * 60 * 1000;
+  private static readonly ENROLLMENT_TOKEN_DIGITS = 6;
+  private static readonly ENROLLMENT_TOKEN_MAX_RETRIES = 20;
 
   constructor(@Inject(MONGO_CLIENT) private readonly db: Db) {}
 
@@ -122,26 +124,55 @@ export class UsersService {
       throw new BadRequestException('Apenas alunos podem gerar token de matricula');
     }
 
-    await this.db.collection<EnrollmentToken>('enrollment_tokens').deleteMany({
+    const now = new Date();
+    const activeToken = await this.db.collection<EnrollmentToken>('enrollment_tokens').findOne({
       userId: user._id!,
       usedAt: { $exists: false },
+      expiresAt: { $gt: now },
     });
 
-    const token = randomBytes(16).toString('hex');
-    const expiresAt = new Date(Date.now() + UsersService.ENROLLMENT_TOKEN_DURATION_IN_MS);
+    if (activeToken) {
+      return {
+        token: activeToken.token,
+        expiresAt: activeToken.expiresAt,
+        message: 'Token ja ativo. Informe este codigo ao administrador do box antes de expirar.',
+      };
+    }
 
-    await this.db.collection<EnrollmentToken>('enrollment_tokens').insertOne({
+    await this.db.collection<EnrollmentToken>('enrollment_tokens').deleteMany({
       userId: user._id!,
-      token,
-      expiresAt,
-      createdAt: new Date(),
+      $or: [{ usedAt: { $exists: false } }, { expiresAt: { $lte: now } }],
     });
 
-    return {
-      token,
-      expiresAt,
-      message: 'Token gerado com sucesso. Informe este codigo ao administrador do box.',
-    };
+    for (let attempt = 0; attempt < UsersService.ENROLLMENT_TOKEN_MAX_RETRIES; attempt++) {
+      const token = this.generateNumericEnrollmentToken();
+      const collision = await this.db.collection<EnrollmentToken>('enrollment_tokens').findOne({
+        token,
+        usedAt: { $exists: false },
+        expiresAt: { $gt: now },
+      });
+
+      if (collision) {
+        continue;
+      }
+
+      const expiresAt = new Date(Date.now() + UsersService.ENROLLMENT_TOKEN_DURATION_IN_MS);
+
+      await this.db.collection<EnrollmentToken>('enrollment_tokens').insertOne({
+        userId: user._id!,
+        token,
+        expiresAt,
+        createdAt: new Date(),
+      });
+
+      return {
+        token,
+        expiresAt,
+        message: 'Token de 6 digitos gerado com sucesso. Informe este codigo ao administrador do box em ate 10 minutos.',
+      };
+    }
+
+    throw new ConflictException('Nao foi possivel gerar um token unico no momento. Tente novamente.');
   }
 
   async enrollStudentWithToken(boxId: string, token: string) {
@@ -149,22 +180,22 @@ export class UsersService {
       throw new BadRequestException('boxId invalido no token');
     }
 
-    const normalizedToken = token.trim().toLowerCase();
+    const normalizedToken = token.trim();
+
+    if (!/^\d{6}$/.test(normalizedToken)) {
+      throw new BadRequestException('Token de matricula deve ter 6 digitos numericos');
+    }
+
     const normalizedBoxId = new ObjectId(boxId);
+    const now = new Date();
     const enrollmentToken = await this.db.collection<EnrollmentToken>('enrollment_tokens').findOne({
       token: normalizedToken,
+      usedAt: { $exists: false },
+      expiresAt: { $gt: now },
     });
 
     if (!enrollmentToken) {
-      throw new BadRequestException('Token de matricula invalido');
-    }
-
-    if (enrollmentToken.usedAt) {
-      throw new BadRequestException('Token de matricula ja utilizado');
-    }
-
-    if (enrollmentToken.expiresAt.getTime() < Date.now()) {
-      throw new BadRequestException('Token de matricula expirado');
+      throw new BadRequestException('Token de matricula invalido ou expirado');
     }
 
     const student = await this.findById(enrollmentToken.userId);
@@ -238,5 +269,10 @@ export class UsersService {
       boxIds: user.boxIds.map((id) => id.toHexString()),
       role: user.role,
     };
+  }
+
+  private generateNumericEnrollmentToken(): string {
+    const max = 10 ** UsersService.ENROLLMENT_TOKEN_DIGITS;
+    return String(randomInt(0, max)).padStart(UsersService.ENROLLMENT_TOKEN_DIGITS, '0');
   }
 }

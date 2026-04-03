@@ -3,13 +3,13 @@ import { IsString, Length, Matches } from 'class-validator';
 
 export class UseEnrollmentTokenDto {
   @ApiProperty({
-    example: '2a90e8f904194ea2c1435d85b8d628a2',
-    description: 'Token temporario gerado pelo aluno para matricula no box',
+    example: '482901',
+    description: 'Token numerico de 6 digitos gerado pelo aluno para matricula no box',
   })
   @IsString()
-  @Length(32, 32)
-  @Matches(/^[a-f0-9]{32}$/i, {
-    message: 'token deve ser um hexadecimal de 32 caracteres',
+  @Length(6, 6)
+  @Matches(/^\d{6}$/, {
+    message: 'token deve conter exatamente 6 digitos numericos',
   })
-  token: string;
+  token!: string;
 }
