@@ -15,7 +15,14 @@ import { MONGO_CLIENT } from './database.constants';
 
         const client = new MongoClient(mongoUri);
         await client.connect();
-        return client.db(mongoDbName);
+        const db = client.db(mongoDbName);
+
+        // Create geospatial index for nearby boxes search
+        await db.collection('boxes').createIndex({ 'location': '2dsphere' }).catch(() => {
+          // Index might already exist, ignore error
+        });
+
+        return db;
       },
     },
   ],

@@ -1,4 +1,4 @@
-import { BadRequestException, Inject, Injectable } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Inject, Injectable } from '@nestjs/common';
 import { Db, ObjectId } from 'mongodb';
 import { AuthService } from '../auth/auth.service';
 import { Box } from '../common/interfaces/box.interface';
@@ -103,57 +103,69 @@ export class BoxesService {
   }
 
   async findNearbyByLocation(userId: string, query: FindNearbyBoxesDto) {
-    const [user, boxes] = await Promise.all([
+    const [user] = await Promise.all([
       this.usersService.findById(userId),
-      this.db.collection<Box>('boxes').find().toArray(),
     ]);
 
-    return boxes
-      .map((box) => {
-        const [boxLongitude, boxLatitude] = box.location.coordinates;
-        const distanceInMeters = this.calculateDistanceInMeters(
-          query.latitude,
-          query.longitude,
-          boxLatitude,
-          boxLongitude,
-        );
+    const radius = query.radius || 5000;
+    const [longitude, latitude] = [query.longitude, query.latitude];
 
-        return {
-          boxId: box._id,
-          name: box.name,
-          cnpj: box.cnpj,
-          latitude: boxLatitude,
-          longitude: boxLongitude,
-          geofenceRadius: box.geofenceRadius,
-          distanceInMeters,
-          isStudentRegistered: user.boxIds.some((registeredBoxId) => registeredBoxId.equals(box._id!)),
-        };
-      })
-      .sort((left, right) => left.distanceInMeters - right.distanceInMeters);
+    const boxes = await this.db
+      .collection<Box>('boxes')
+      .aggregate([
+        {
+          $geoNear: {
+            near: {
+              type: 'Point',
+              coordinates: [longitude, latitude],
+            },
+            distanceField: 'distanceInMeters',
+            maxDistance: radius,
+            spherical: true,
+          },
+        },
+        {
+          $project: {
+            boxId: '$_id',
+            name: 1,
+            cnpj: 1,
+            latitude: { $arrayElemAt: ['$location.coordinates', 1] },
+            longitude: { $arrayElemAt: ['$location.coordinates', 0] },
+            geofenceRadius: 1,
+            distanceInMeters: 1,
+          },
+        },
+      ])
+      .toArray();
+
+    return boxes.map((box: any) => ({
+      ...box,
+      isStudentRegistered: user.boxIds.some((registeredBoxId: ObjectId) =>
+        registeredBoxId.equals(box.boxId),
+      ),
+    }));
   }
 
-  private calculateDistanceInMeters(
-    originLatitude: number,
-    originLongitude: number,
-    destinationLatitude: number,
-    destinationLongitude: number,
-  ): number {
-    const earthRadiusInMeters = 6371000;
-    const toRadians = (degrees: number): number => (degrees * Math.PI) / 180;
-    const latitudeDiff = toRadians(destinationLatitude - originLatitude);
-    const longitudeDiff = toRadians(destinationLongitude - originLongitude);
-    const originLatitudeInRadians = toRadians(originLatitude);
-    const destinationLatitudeInRadians = toRadians(destinationLatitude);
+  async validateUserBoxMembership(userId: string, boxId: string): Promise<void> {
+    if (!ObjectId.isValid(userId) || !ObjectId.isValid(boxId)) {
+      throw new BadRequestException('IDs invalidos');
+    }
 
-    const a =
-      Math.sin(latitudeDiff / 2) * Math.sin(latitudeDiff / 2) +
-      Math.cos(originLatitudeInRadians) *
-        Math.cos(destinationLatitudeInRadians) *
-        Math.sin(longitudeDiff / 2) *
-        Math.sin(longitudeDiff / 2);
+    const userObjectId = new ObjectId(userId);
+    const boxObjectId = new ObjectId(boxId);
 
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    const user = await this.db.collection('users').findOne({
+      _id: userObjectId,
+    });
 
-    return earthRadiusInMeters * c;
+    if (!user) {
+      throw new ForbiddenException('Usuario nao encontrado');
+    }
+
+    const hasMembership = user.boxIds.some((id: ObjectId) => id.equals(boxObjectId));
+
+    if (!hasMembership) {
+      throw new ForbiddenException('Box nao pertence ao usuario');
+    }
   }
 }
