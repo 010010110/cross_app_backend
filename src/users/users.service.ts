@@ -106,6 +106,11 @@ export class UsersService {
       email: normalizedEmail,
       passwordHash: await hash(dto.password, 10),
       role: UserRole.ALUNO,
+      contactPhone: dto.contactPhone,
+      whatsapp: dto.whatsapp,
+      address: dto.address,
+      socialInstagram: dto.socialInstagram,
+      socialFacebook: dto.socialFacebook,
       createdAt: new Date(),
     };
 

@@ -9,7 +9,7 @@ import { LoginDto } from './dto/login.dto';
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  @Post('register')
+  @Post('/user/register')
   @ApiOperation({ summary: 'Cadastro independente de aluno' })
   @ApiResponse({ status: 201, description: 'Usuario cadastrado e JWT retornado com sucesso' })
   @ApiResponse({ status: 409, description: 'Ja existe usuario com este email' })

@@ -1038,7 +1038,7 @@
         }
       }
     },
-    "/auth/register": {
+    "/user/register": {
       "post": {
         "tags": [
           "Auth"
@@ -1334,6 +1334,12 @@
           "latitude",
           "longitude",
           "geofenceRadius",
+          "contactPhone",
+          "contactEmail",
+          "contactWhatsapp",
+          "contactInstagram",
+          "contactWebsite",
+          "address",
           "adminName",
           "adminEmail",
           "adminPassword"
@@ -1370,6 +1376,37 @@
             "minimum": 1,
             "maximum": 5000,
             "example": 100
+          },
+          "contactPhone": {
+            "type": "string",
+            "pattern": "^\\+?[0-9]{10,15}$",
+            "example": "+5543999998888"
+          },
+          "contactEmail": {
+            "type": "string",
+            "format": "email",
+            "example": "contato@crossboxalpha.com.br"
+          },
+          "contactWhatsapp": {
+            "type": "string",
+            "pattern": "^\\+?[0-9]{10,15}$",
+            "example": "+5543988887777"
+          },
+          "contactInstagram": {
+            "type": "string",
+            "pattern": "^@?[a-zA-Z0-9._]{2,30}$",
+            "example": "@crossboxalpha"
+          },
+          "contactWebsite": {
+            "type": "string",
+            "format": "uri",
+            "example": "https://crossboxalpha.com.br"
+          },
+          "address": {
+            "type": "string",
+            "minLength": 10,
+            "maxLength": 240,
+            "example": "Rua Prefeito Faria Lima, 450 - Centro, Londrina/PR - 86010-000"
           },
           "adminName": {
             "type": "string",
@@ -1719,6 +1756,12 @@
           "cnpj",
           "location",
           "geofenceRadius",
+          "contactPhone",
+          "contactEmail",
+          "contactWhatsapp",
+          "contactInstagram",
+          "contactWebsite",
+          "address",
           "createdAt"
         ],
         "properties": {
@@ -1742,6 +1785,32 @@
           "geofenceRadius": {
             "type": "number",
             "example": 100
+          },
+          "contactPhone": {
+            "type": "string",
+            "example": "+5543999998888"
+          },
+          "contactEmail": {
+            "type": "string",
+            "format": "email",
+            "example": "contato@crossboxalpha.com.br"
+          },
+          "contactWhatsapp": {
+            "type": "string",
+            "example": "+5543988887777"
+          },
+          "contactInstagram": {
+            "type": "string",
+            "example": "@crossboxalpha"
+          },
+          "contactWebsite": {
+            "type": "string",
+            "format": "uri",
+            "example": "https://crossboxalpha.com.br"
+          },
+          "address": {
+            "type": "string",
+            "example": "Rua Prefeito Faria Lima, 450 - Centro, Londrina/PR - 86010-000"
           },
           "createdAt": {
             "type": "string",
@@ -2134,6 +2203,27 @@
             "format": "email",
             "example": "joao@aluno.com"
           },
+          "contactPhone": {
+            "type": "string",
+            "example": "+5543999998888"
+          },
+          "whatsapp": {
+            "type": "string",
+            "example": "+5543988887777"
+          },
+          "address": {
+            "type": "string",
+            "example": "Rua Pernambuco, 250 - Centro, Londrina/PR - 86020-120"
+          },
+          "socialInstagram": {
+            "type": "string",
+            "example": "@joaoatleta"
+          },
+          "socialFacebook": {
+            "type": "string",
+            "format": "uri",
+            "example": "https://facebook.com/joao.aluno"
+          },
           "role": {
             "$ref": "#/components/schemas/UserRole"
           },
@@ -2405,7 +2495,10 @@
         "required": [
           "name",
           "email",
-          "password"
+          "password",
+          "contactPhone",
+          "whatsapp",
+          "address"
         ],
         "properties": {
           "name": {
@@ -2423,6 +2516,32 @@
             "type": "string",
             "minLength": 8,
             "example": "Aluno@123"
+          },
+          "contactPhone": {
+            "type": "string",
+            "pattern": "^\\+?[0-9]{10,15}$",
+            "example": "+5543999998888"
+          },
+          "whatsapp": {
+            "type": "string",
+            "pattern": "^\\+?[0-9]{10,15}$",
+            "example": "+5543988887777"
+          },
+          "address": {
+            "type": "string",
+            "minLength": 10,
+            "maxLength": 240,
+            "example": "Rua Pernambuco, 250 - Centro, Londrina/PR - 86020-120"
+          },
+          "socialInstagram": {
+            "type": "string",
+            "pattern": "^@?[a-zA-Z0-9._]{2,30}$",
+            "example": "@joaoatleta"
+          },
+          "socialFacebook": {
+            "type": "string",
+            "format": "uri",
+            "example": "https://facebook.com/joao.aluno"
           }
         }
       },
@@ -2507,6 +2626,12 @@
           "latitude",
           "longitude",
           "geofenceRadius",
+          "contactPhone",
+          "contactEmail",
+          "contactWhatsapp",
+          "contactInstagram",
+          "contactWebsite",
+          "address",
           "distanceInMeters",
           "isStudentRegistered"
         ],
@@ -2533,6 +2658,32 @@
           "geofenceRadius": {
             "type": "number",
             "example": 100
+          },
+          "contactPhone": {
+            "type": "string",
+            "example": "+5543999998888"
+          },
+          "contactEmail": {
+            "type": "string",
+            "format": "email",
+            "example": "contato@crossboxalpha.com.br"
+          },
+          "contactWhatsapp": {
+            "type": "string",
+            "example": "+5543988887777"
+          },
+          "contactInstagram": {
+            "type": "string",
+            "example": "@crossboxalpha"
+          },
+          "contactWebsite": {
+            "type": "string",
+            "format": "uri",
+            "example": "https://crossboxalpha.com.br"
+          },
+          "address": {
+            "type": "string",
+            "example": "Rua Prefeito Faria Lima, 450 - Centro, Londrina/PR - 86010-000"
           },
           "distanceInMeters": {
             "type": "number",

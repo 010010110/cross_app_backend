@@ -8,5 +8,10 @@ export interface User {
   email: string;
   passwordHash: string;
   role: UserRole;
+  contactPhone?: string;
+  whatsapp?: string;
+  address?: string;
+  socialInstagram?: string;
+  socialFacebook?: string;
   createdAt: Date;
 }

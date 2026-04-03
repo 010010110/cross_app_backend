@@ -10,5 +10,11 @@ export interface Box {
     coordinates: [number, number];
   };
   geofenceRadius: number;
+  contactPhone: string;
+  contactEmail: string;
+  contactWhatsapp: string;
+  contactInstagram: string;
+  contactWebsite: string;
+  address: string;
   createdAt: Date;
 }

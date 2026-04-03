@@ -6,6 +6,7 @@ import {
   IsNumber,
   IsOptional,
   IsString,
+  IsUrl,
   Length,
   Matches,
   Max,
@@ -54,6 +55,58 @@ export class RegisterBoxDto {
   @Min(1)
   @Max(5000)
   geofenceRadius: number;
+
+  @ApiProperty({
+    example: '+5543999998888',
+    description: 'Telefone de contato principal do box (com DDI +55)',
+  })
+  @Matches(/^\+?[0-9]{10,15}$/, {
+    message: 'contactPhone deve conter entre 10 e 15 digitos e pode iniciar com +',
+  })
+  contactPhone: string;
+
+  @ApiProperty({
+    example: 'contato@crossboxalpha.com.br',
+    description: 'Email de contato comercial do box',
+  })
+  @IsEmail()
+  contactEmail: string;
+
+  @ApiProperty({
+    example: '+5543988887777',
+    description: 'WhatsApp oficial do box (com DDI +55)',
+  })
+  @Matches(/^\+?[0-9]{10,15}$/, {
+    message: 'contactWhatsapp deve conter entre 10 e 15 digitos e pode iniciar com +',
+  })
+  contactWhatsapp: string;
+
+  @ApiProperty({
+    example: '@crossboxalpha',
+    description: 'Perfil oficial do Instagram do box',
+  })
+  @Matches(/^@?[a-zA-Z0-9._]{2,30}$/, {
+    message: 'contactInstagram deve ser um usuario valido do Instagram',
+  })
+  contactInstagram: string;
+
+  @ApiProperty({
+    example: 'https://crossboxalpha.com.br',
+    description: 'Website oficial do box',
+  })
+  @IsUrl({
+    require_tld: true,
+    require_protocol: true,
+  })
+  contactWebsite: string;
+
+  @ApiProperty({
+    example: 'Rua Prefeito Faria Lima, 450 - Centro, Londrina/PR - 86010-000',
+    description: 'Endereco completo em linha unica',
+  })
+  @IsString()
+  @Length(10, 240)
+  address: string;
 
   @ApiProperty({ example: 'Ana Admin', description: 'Nome do administrador inicial' })
   @IsString()
