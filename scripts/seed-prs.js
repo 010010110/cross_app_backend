@@ -113,6 +113,7 @@ async function loadExercisesForBox(db, boxId) {
     .find({
       $or: [{ isGlobal: true }, { boxId: new ObjectId(boxId) }],
     })
+    .sort({ name: 1, _id: 1 })
     .toArray();
 }
 
@@ -145,7 +146,6 @@ async function seedPrsForStudentInBox(db, student, boxId, options) {
       userId: student._id,
       boxId: new ObjectId(boxId),
       wodId: wod._id,
-      wodTitle: wod.title,
       score,
     };
 
@@ -154,7 +154,8 @@ async function seedPrsForStudentInBox(db, student, boxId, options) {
       {
         $setOnInsert: {
           ...query,
-          wodModel: wod.model,
+          wodTitle: wod.title,
+          wodModel: wod.model ?? inferWodModelFromText(wod),
           scoreKind,
           createdAt: createdAtForSeed(i + 1, indexCursor * 7),
         },
@@ -182,7 +183,7 @@ async function seedPrsForStudentInBox(db, student, boxId, options) {
       exerciseId: exercise._id,
       score,
       isNewPR: true,
-      wodId: { $exists: false },
+      $or: [{ wodId: { $exists: false } }, { wodId: null }],
     };
 
     const result = await db.collection('results').updateOne(

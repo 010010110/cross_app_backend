@@ -880,19 +880,31 @@
                 },
                 "examples": {
                   "resultadosDoAluno": {
-                    "summary": "Historico de resultados no box atual",
+                    "summary": "Historico de resultados WOD do aluno autenticado",
                     "value": [
                       {
                         "_id": "67ec2101ac5d89c8bb9d5101",
                         "userId": "67ebfa10ac5d89c8bb9d2101",
                         "boxId": "67ea76a5ac5d89c8bb9d2111",
                         "wodId": "67ebb901ac5d89c8bb9d6101",
-                        "exerciseId": "67eaa001ac5d89c8bb9d3101",
-                        "score": "95kg",
+                        "score": "7+12",
                         "scoreKind": "LOAD",
+                        "wodModel": "AMRAP",
                         "wodTitle": "Cross Alpha WOD 2026-04-03",
                         "wodDate": "2026-04-03T00:00:00.000Z",
                         "createdAt": "2026-04-03T10:30:00.000Z"
+                      },
+                      {
+                        "_id": "67ec2102ac5d89c8bb9d5102",
+                        "userId": "67ebfa10ac5d89c8bb9d2101",
+                        "boxId": "67ea76a5ac5d89c8bb9d2222",
+                        "wodId": "67ebb902ac5d89c8bb9d6102",
+                        "score": "12:34",
+                        "scoreKind": "TIME",
+                        "wodModel": "FOR_TIME",
+                        "wodTitle": "Cross Bravo WOD 2026-04-02",
+                        "wodDate": "2026-04-02T00:00:00.000Z",
+                        "createdAt": "2026-04-02T18:10:00.000Z"
                       }
                     ]
                   }
@@ -1015,20 +1027,21 @@
                 },
                 "examples": {
                   "prsDoAluno": {
-                    "summary": "Lista de PRs no box atual",
+                    "summary": "Lista de PRs do aluno: com e sem vinculo a WOD",
                     "value": [
                       {
                         "_id": "67ec2101ac5d89c8bb9d5101",
                         "userId": "67ebfa10ac5d89c8bb9d2101",
                         "boxId": "67ea76a5ac5d89c8bb9d2111",
-                        "wodId": "67ebb901ac5d89c8bb9d6101",
+                        "wodId": null,
                         "exerciseId": "67eaa001ac5d89c8bb9d3101",
-                        "score": "95kg",
+                        "score": "100kg",
                         "scoreKind": "LOAD",
                         "isNewPR": true,
+                        "wodModel": null,
                         "exerciseName": "Deadlift",
-                        "wodTitle": "Cross Alpha WOD 2026-04-03",
-                        "wodDate": "2026-04-03T00:00:00.000Z",
+                        "wodTitle": null,
+                        "wodDate": null,
                         "createdAt": "2026-04-03T10:30:00.000Z"
                       },
                       {
@@ -1040,6 +1053,7 @@
                         "score": "01:50",
                         "scoreKind": "TIME",
                         "isNewPR": true,
+                        "wodModel": null,
                         "exerciseName": "Row 500m",
                         "wodTitle": null,
                         "wodDate": null,
@@ -3324,6 +3338,16 @@
           "isNewPR": {
             "type": "boolean",
             "example": true
+          },
+          "wodModel": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/WodModel"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "exerciseName": {
             "oneOf": [

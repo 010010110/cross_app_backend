@@ -27,11 +27,13 @@ export class ResultsService {
 
     const currentParsedScore = this.parseScore(dto.score);
 
+    const effectiveWodModel = this.detectWodResultMode(wod);
+
     const result: Result = {
       userId: new ObjectId(userId),
       boxId: wod.boxId,
       wodId: new ObjectId(dto.wodId),
-      wodModel: wod.model,
+      wodModel: effectiveWodModel ?? undefined,
       wodTitle: wod.title,
       score: dto.score,
       scoreKind: currentParsedScore?.kind ?? ResultScoreKind.UNKNOWN,
@@ -185,6 +187,7 @@ export class ResultsService {
             scoreKind: 1,
             isNewPR: 1,
             createdAt: 1,
+            wodModel: { $ifNull: ['$wodModel', { $ifNull: [{ $arrayElemAt: ['$wod.model', 0] }, null] }] },
             exerciseName: { $ifNull: [{ $arrayElemAt: ['$exercise.name', 0] }, null] },
             wodTitle: { $ifNull: [{ $arrayElemAt: ['$wod.title', 0] }, null] },
             wodDate: { $ifNull: [{ $arrayElemAt: ['$wod.date', 0] }, null] },
