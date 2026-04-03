@@ -1,4 +1,14 @@
-import { Body, Controller, Post, Req, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  DefaultValuePipe,
+  Get,
+  ParseIntPipe,
+  Post,
+  Query,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiHeader,
@@ -29,18 +39,31 @@ interface AuthenticatedRequest extends Request {
 export class ResultsController {
   constructor(private readonly resultsService: ResultsService) {}
 
+  @Get()
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ALUNO)
+  @ApiOperation({ summary: 'Lista resultados do aluno no box atual' })
+  @ApiResponse({ status: 200, description: 'Resultados retornados com sucesso' })
+  @ApiResponse({ status: 403, description: 'Perfil sem permissao para consultar resultados' })
+  async list(
+    @Req() request: AuthenticatedRequest,
+    @Query('limit', new DefaultValuePipe(50), ParseIntPipe) limit: number,
+  ) {
+    return this.resultsService.listByUser(request.user.sub, request.user.boxId!, limit);
+  }
+
   @Post()
   @UseGuards(RolesGuard)
   @Roles(UserRole.ALUNO)
   @ApiOperation({
     summary: 'Registra resultado de treino e identifica novo PR',
     description:
-      'Salva o score do aluno para um exercicio em um WOD e marca isNewPR=true quando o score supera o melhor historico do proprio aluno para o mesmo exercicio.',
+      'Salva o score final do WOD completo e marca isNewPR=true quando o score supera o melhor historico do proprio aluno para o mesmo benchmark (titulo do WOD).',
   })
   @ApiResponse({ status: 201, description: 'Resultado salvo com sucesso' })
   @ApiResponse({ status: 400, description: 'Dados invalidos' })
   @ApiResponse({ status: 403, description: 'Perfil sem permissao para registrar resultado' })
-  @ApiResponse({ status: 404, description: 'WOD ou exercicio nao encontrado para o box' })
+  @ApiResponse({ status: 404, description: 'WOD nao encontrado para o box' })
   async create(@Req() request: AuthenticatedRequest, @Body() createResultDto: CreateResultDto) {
     return this.resultsService.create(request.user.sub, request.user.boxId!, createResultDto);
   }
@@ -66,5 +89,18 @@ export class ResultsController {
       request.user.boxId!,
       createExercisePrDto,
     );
+  }
+
+  @Get('pr')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ALUNO)
+  @ApiOperation({ summary: 'Lista PRs do aluno no box atual' })
+  @ApiResponse({ status: 200, description: 'PRs retornados com sucesso' })
+  @ApiResponse({ status: 403, description: 'Perfil sem permissao para consultar PRs' })
+  async listPrs(
+    @Req() request: AuthenticatedRequest,
+    @Query('limit', new DefaultValuePipe(50), ParseIntPipe) limit: number,
+  ) {
+    return this.resultsService.listPrByUser(request.user.sub, request.user.boxId!, limit);
   }
 }

@@ -1,5 +1,5 @@
 import { ObjectId } from 'mongodb';
-import { ResultScoreKind } from '../../common/enums';
+import { ResultScoreKind, WodModel } from '../../common/enums';
 
 export { ResultScoreKind };
 
@@ -8,7 +8,9 @@ export interface Result {
   userId: ObjectId;
   boxId: ObjectId;
   wodId?: ObjectId;
-  exerciseId: ObjectId;
+  exerciseId?: ObjectId;
+  wodModel?: WodModel;
+  wodTitle?: string;
   score: string;
   scoreKind: ResultScoreKind;
   isNewPR: boolean;

@@ -2,7 +2,11 @@ import {
   BadRequestException,
   Body,
   Controller,
+  DefaultValuePipe,
+  Get,
+  ParseIntPipe,
   Post,
+  Query,
   Req,
   UploadedFile,
   UseGuards,
@@ -67,15 +71,30 @@ const imageFileFilter = (
 
 @ApiTags('Feed')
 @ApiBearerAuth()
-@ApiHeader({ name: 'x-box-id', description: 'ID do box selecionado', required: true })
-@UseGuards(JwtAuthGuard, BoxContextGuard)
+@UseGuards(JwtAuthGuard)
 @Controller('feed')
 export class FeedController {
   constructor(private readonly feedService: FeedService) {}
 
+  @Get()
+  @ApiOperation({
+    summary: 'Lista o feed consolidado das academias do usuario autenticado',
+    description:
+      'Retorna posts das academias vinculadas ao usuario (user.boxIds), ordenados do mais recente para o mais antigo.',
+  })
+  @ApiResponse({ status: 200, description: 'Feed retornado com sucesso' })
+  async listFeed(
+    @Req() request: AuthenticatedRequest,
+    @Query('limit', new DefaultValuePipe(50), ParseIntPipe) limit: number,
+  ) {
+    return this.feedService.listFeedByUserBoxes(request.user.boxIds ?? [], limit);
+  }
+
   @Post('upload')
+  @UseGuards(BoxContextGuard)
   @UseGuards(RolesGuard)
   @Roles(UserRole.ALUNO)
+  @ApiHeader({ name: 'x-box-id', description: 'ID do box selecionado', required: true })
   @UseInterceptors(
     FileInterceptor('image', {
       storage: multerStorage,
@@ -117,8 +136,10 @@ export class FeedController {
   }
 
   @Post('post')
+  @UseGuards(BoxContextGuard)
   @UseGuards(RolesGuard)
   @Roles(UserRole.ALUNO)
+  @ApiHeader({ name: 'x-box-id', description: 'ID do box selecionado', required: true })
   @ApiOperation({
     summary: 'Cria post no feed do box',
     description:

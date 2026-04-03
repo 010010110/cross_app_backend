@@ -18,6 +18,62 @@ export interface AutoPrPostResult {
 export class FeedService {
   constructor(@Inject(MONGO_CLIENT) private readonly db: Db) {}
 
+  async listFeedByUserBoxes(boxIds: string[], limit = 50) {
+    const normalizedBoxIds = boxIds
+      .filter((boxId) => ObjectId.isValid(boxId))
+      .map((boxId) => new ObjectId(boxId));
+
+    if (normalizedBoxIds.length === 0) {
+      return [];
+    }
+
+    const normalizedLimit = Math.min(Math.max(limit, 1), 200);
+
+    return this.db
+      .collection<Post>('posts')
+      .aggregate([
+        {
+          $match: {
+            boxId: { $in: normalizedBoxIds },
+          },
+        },
+        { $sort: { createdAt: -1 } },
+        { $limit: normalizedLimit },
+        {
+          $lookup: {
+            from: 'users',
+            localField: 'userId',
+            foreignField: '_id',
+            as: 'author',
+          },
+        },
+        {
+          $lookup: {
+            from: 'boxes',
+            localField: 'boxId',
+            foreignField: '_id',
+            as: 'box',
+          },
+        },
+        {
+          $project: {
+            _id: 1,
+            userId: 1,
+            boxId: 1,
+            checkinId: 1,
+            resultId: 1,
+            text: 1,
+            photoUrl: 1,
+            source: 1,
+            createdAt: 1,
+            authorName: { $ifNull: [{ $arrayElemAt: ['$author.name', 0] }, null] },
+            boxName: { $ifNull: [{ $arrayElemAt: ['$box.name', 0] }, null] },
+          },
+        },
+      ])
+      .toArray();
+  }
+
   async createPost(userId: string, boxId: string, dto: CreateFeedPostDto) {
     const normalizedUserId = new ObjectId(userId);
     const normalizedBoxId = new ObjectId(boxId);

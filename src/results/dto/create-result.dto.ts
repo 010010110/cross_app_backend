@@ -11,16 +11,9 @@ export class CreateResultDto {
   wodId: string;
 
   @ApiProperty({
-    description: 'ID do exercicio registrado no resultado',
-    example: '67ea76a5ac5d89c8bb9d2122',
-  })
-  @IsMongoId()
-  exerciseId: string;
-
-  @ApiProperty({
     description:
-      'Score do resultado. Aceita carga (ex: 95, 95kg) ou tempo (ex: 02:34, 00:12:30).',
-    example: '95kg',
+      'Score final do WOD completo. AMRAP/EMOM/TABATA: repeticoes (ex: 120, 120 reps, 7+12). FOR_TIME/RFT/CHIPPER: tempo (ex: 02:34, 00:12:30). LADDER/INTERVALS: tempo ou repeticoes.',
+    example: '120 reps',
   })
   @Transform(({ value }) => String(value).trim())
   @IsString()

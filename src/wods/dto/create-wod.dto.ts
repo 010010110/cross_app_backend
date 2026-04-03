@@ -5,11 +5,12 @@ import {
   IsArray,
   IsDateString,
   IsEnum,
+  IsOptional,
   IsString,
   Length,
   ValidateNested,
 } from 'class-validator';
-import { WodBlockType } from '../interfaces/wod.interface';
+import { WodBlockType, WodModel } from '../interfaces/wod.interface';
 
 export class CreateWodBlockDto {
   @ApiProperty({
@@ -46,6 +47,17 @@ export class CreateWodDto {
   @IsString()
   @Length(2, 120)
   title: string;
+
+  @ApiProperty({
+    required: false,
+    example: WodModel.AMRAP,
+    description:
+      'Modelo do treino. Se omitido, o backend tenta inferir automaticamente a partir do titulo/conteudo.',
+    enum: WodModel,
+  })
+  @IsOptional()
+  @IsEnum(WodModel)
+  model?: WodModel;
 
   @ApiProperty({
     description: 'Lista ordenada de blocos do treino',

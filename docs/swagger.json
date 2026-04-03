@@ -347,6 +347,33 @@
                   "items": {
                     "$ref": "#/components/schemas/Checkin"
                   }
+                },
+                "examples": {
+                  "checkinsDoUsuario": {
+                    "summary": "Historico de check-ins do aluno autenticado",
+                    "value": [
+                      {
+                        "_id": "67ec0001ac5d89c8bb9d2001",
+                        "userId": "67ebfa10ac5d89c8bb9d2101",
+                        "boxId": "67ea76a5ac5d89c8bb9d2111",
+                        "classId": "67ebb001ac5d89c8bb9d2201",
+                        "latitude": -23.56412,
+                        "longitude": -46.65297,
+                        "distanceFromBoxInMeters": 37.4,
+                        "createdAt": "2026-04-03T06:05:00.000Z"
+                      },
+                      {
+                        "_id": "67ec0002ac5d89c8bb9d2002",
+                        "userId": "67ebfa10ac5d89c8bb9d2101",
+                        "boxId": "67ea76a5ac5d89c8bb9d2222",
+                        "classId": "67ebb002ac5d89c8bb9d2202",
+                        "latitude": -22.90661,
+                        "longitude": -43.17273,
+                        "distanceFromBoxInMeters": 28.9,
+                        "createdAt": "2026-04-02T18:10:00.000Z"
+                      }
+                    ]
+                  }
                 }
               }
             }
@@ -380,6 +407,33 @@
                   "type": "array",
                   "items": {
                     "$ref": "#/components/schemas/Checkin"
+                  }
+                },
+                "examples": {
+                  "checkinsDoDiaNoBox": {
+                    "summary": "Check-ins do dia no box selecionado",
+                    "value": [
+                      {
+                        "_id": "67ec1001ac5d89c8bb9d2301",
+                        "userId": "67ebfa12ac5d89c8bb9d2103",
+                        "boxId": "67ea76a5ac5d89c8bb9d2111",
+                        "classId": "67ebb001ac5d89c8bb9d2201",
+                        "latitude": -23.56421,
+                        "longitude": -46.65288,
+                        "distanceFromBoxInMeters": 22.5,
+                        "createdAt": "2026-04-03T06:00:00.000Z"
+                      },
+                      {
+                        "_id": "67ec1002ac5d89c8bb9d2302",
+                        "userId": "67ebfa13ac5d89c8bb9d2104",
+                        "boxId": "67ea76a5ac5d89c8bb9d2111",
+                        "classId": "67ebb003ac5d89c8bb9d2203",
+                        "latitude": -23.56436,
+                        "longitude": -46.65301,
+                        "distanceFromBoxInMeters": 41.1,
+                        "createdAt": "2026-04-03T07:02:00.000Z"
+                      }
+                    ]
                   }
                 }
               }
@@ -730,7 +784,7 @@
           "Results"
         ],
         "summary": "Registra resultado de treino e identifica novo PR",
-        "description": "Salva o score do aluno para um exercicio em um WOD e marca isNewPR=true quando o score supera o melhor historico do proprio aluno para o mesmo exercicio.",
+        "description": "Salva o score final do WOD completo e marca isNewPR=true quando o score supera o melhor historico do proprio aluno para o mesmo benchmark (titulo do WOD). Regras por modelo: AMRAP/EMOM/TABATA aceitam repeticoes; FOR_TIME/RFT/CHIPPER aceitam tempo; LADDER/INTERVALS aceitam tempo ou repeticoes.",
         "security": [
           {
             "bearerAuth": []
@@ -783,7 +837,81 @@
             }
           },
           "404": {
-            "description": "WOD ou exercicio nao encontrado para o box",
+            "description": "WOD nao encontrado para o box",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Results"
+        ],
+        "summary": "Lista resultados do aluno no box atual",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/XBoxIdHeader"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "Quantidade maxima de resultados retornados (1 a 200). Padrao: 50",
+            "schema": {
+              "type": "number",
+              "minimum": 1,
+              "maximum": 200,
+              "example": 50
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Resultados retornados com sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ResultListItem"
+                  }
+                },
+                "examples": {
+                  "resultadosDoAluno": {
+                    "summary": "Historico de resultados no box atual",
+                    "value": [
+                      {
+                        "_id": "67ec2101ac5d89c8bb9d5101",
+                        "userId": "67ebfa10ac5d89c8bb9d2101",
+                        "boxId": "67ea76a5ac5d89c8bb9d2111",
+                        "wodId": "67ebb901ac5d89c8bb9d6101",
+                        "exerciseId": "67eaa001ac5d89c8bb9d3101",
+                        "score": "95kg",
+                        "scoreKind": "LOAD",
+                        "isNewPR": true,
+                        "exerciseName": "Deadlift",
+                        "wodTitle": "Cross Alpha WOD 2026-04-03",
+                        "wodDate": "2026-04-03T00:00:00.000Z",
+                        "createdAt": "2026-04-03T10:30:00.000Z"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Perfil sem permissao para consultar resultados",
             "content": {
               "application/json": {
                 "schema": {
@@ -855,6 +983,94 @@
           },
           "404": {
             "description": "Exercicio nao encontrado para o box",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Results"
+        ],
+        "summary": "Lista PRs do aluno no box atual",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/XBoxIdHeader"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "Quantidade maxima de PRs retornados (1 a 200). Padrao: 50",
+            "schema": {
+              "type": "number",
+              "minimum": 1,
+              "maximum": 200,
+              "example": 50
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "PRs retornados com sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ResultListItem"
+                  }
+                },
+                "examples": {
+                  "prsDoAluno": {
+                    "summary": "Lista de PRs no box atual",
+                    "value": [
+                      {
+                        "_id": "67ec2101ac5d89c8bb9d5101",
+                        "userId": "67ebfa10ac5d89c8bb9d2101",
+                        "boxId": "67ea76a5ac5d89c8bb9d2111",
+                        "wodId": "67ebb901ac5d89c8bb9d6101",
+                        "exerciseId": "67eaa001ac5d89c8bb9d3101",
+                        "score": "95kg",
+                        "scoreKind": "LOAD",
+                        "isNewPR": true,
+                        "exerciseName": "Deadlift",
+                        "wodTitle": "Cross Alpha WOD 2026-04-03",
+                        "wodDate": "2026-04-03T00:00:00.000Z",
+                        "createdAt": "2026-04-03T10:30:00.000Z"
+                      },
+                      {
+                        "_id": "67ec2102ac5d89c8bb9d5102",
+                        "userId": "67ebfa10ac5d89c8bb9d2101",
+                        "boxId": "67ea76a5ac5d89c8bb9d2111",
+                        "wodId": null,
+                        "exerciseId": "67eaa001ac5d89c8bb9d3102",
+                        "score": "01:50",
+                        "scoreKind": "TIME",
+                        "isNewPR": true,
+                        "exerciseName": "Row 500m",
+                        "wodTitle": null,
+                        "wodDate": null,
+                        "createdAt": "2026-04-02T18:10:00.000Z"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Perfil sem permissao para consultar PRs",
             "content": {
               "application/json": {
                 "schema": {
@@ -1246,6 +1462,108 @@
           }
         }
       }
+    },
+    "/feed": {
+      "get": {
+        "tags": [
+          "Feed"
+        ],
+        "summary": "Lista o feed consolidado das academias do usuario autenticado",
+        "description": "Retorna posts das academias vinculadas ao usuario (user.boxIds), ordenados do mais recente para o mais antigo.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "Quantidade maxima de posts retornados (1 a 200). Padrao: 50",
+            "schema": {
+              "type": "number",
+              "minimum": 1,
+              "maximum": 200,
+              "example": 50
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Feed retornado com sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FeedListItem"
+                  }
+                },
+                "examples": {
+                  "feedConsolidadoAlphaBravo": {
+                    "summary": "Feed consolidado de duas academias (alpha e bravo)",
+                    "value": [
+                      {
+                        "_id": "67ec0011ac5d89c8bb9d3001",
+                        "userId": "67ebfa10ac5d89c8bb9d2101",
+                        "boxId": "67ea76a5ac5d89c8bb9d2111",
+                        "checkinId": "67ec0001ac5d89c8bb9d2001",
+                        "resultId": "67ec0101ac5d89c8bb9d4001",
+                        "text": "Novo PR! Deadlift com 140kg. To na missao!",
+                        "photoUrl": null,
+                        "source": "PR_AUTO",
+                        "authorName": "Aluno A3",
+                        "boxName": "Cross Alpha",
+                        "createdAt": "2026-04-03T10:31:00.000Z"
+                      },
+                      {
+                        "_id": "67ec0012ac5d89c8bb9d3002",
+                        "userId": "67ebfa11ac5d89c8bb9d2102",
+                        "boxId": "67ea76a5ac5d89c8bb9d2222",
+                        "checkinId": "67ec0002ac5d89c8bb9d2002",
+                        "text": "Treino da tarde com a galera da turma das 18h. Top demais!",
+                        "photoUrl": "http://localhost:3000/uploads/feed/1712086421000-123456789.jpg",
+                        "source": "MANUAL",
+                        "authorName": "Aluno B1",
+                        "boxName": "Cross Bravo",
+                        "createdAt": "2026-04-03T09:05:00.000Z"
+                      }
+                    ]
+                  },
+                  "feedSomenteAlpha": {
+                    "summary": "Feed para usuario matriculado apenas na alpha",
+                    "value": [
+                      {
+                        "_id": "67ec0013ac5d89c8bb9d3003",
+                        "userId": "67ebfa12ac5d89c8bb9d2103",
+                        "boxId": "67ea76a5ac5d89c8bb9d2111",
+                        "checkinId": "67ec0003ac5d89c8bb9d2003",
+                        "text": "Consistencia e o segredo. Dia 8 de treino consecutivo!",
+                        "photoUrl": null,
+                        "source": "MANUAL",
+                        "authorName": "Aluno A1",
+                        "boxName": "Cross Alpha",
+                        "createdAt": "2026-04-03T07:05:00.000Z"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token ausente, invalido ou expirado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -1581,6 +1899,9 @@
             "items": {
               "$ref": "#/components/schemas/CreateWodBlockDto"
             }
+          },
+          "model": {
+            "$ref": "#/components/schemas/WodModel"
           }
         }
       },
@@ -1588,22 +1909,18 @@
         "type": "object",
         "required": [
           "wodId",
-          "exerciseId",
           "score"
         ],
         "properties": {
           "wodId": {
             "$ref": "#/components/schemas/ObjectId"
           },
-          "exerciseId": {
-            "$ref": "#/components/schemas/ObjectId"
-          },
           "score": {
             "type": "string",
             "minLength": 1,
             "maxLength": 50,
-            "example": "95kg",
-            "description": "Score do resultado. Aceita carga (ex: 95, 95kg) ou tempo (ex: 02:34, 00:12:30)."
+            "example": "7+12",
+            "description": "Score final do WOD completo. AMRAP/EMOM/TABATA: repeticoes (ex: 120, 120 reps, 7+12). FOR_TIME/RFT/CHIPPER: tempo (ex: 02:34, 00:12:30). LADDER/INTERVALS: tempo ou repeticoes."
           },
           "autoPostText": {
             "type": "string",
@@ -2394,6 +2711,9 @@
           "createdAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "model": {
+            "$ref": "#/components/schemas/WodModel"
           }
         }
       },
@@ -2694,6 +3014,193 @@
             "example": true
           }
         }
+      },
+      "FeedPostSource": {
+        "type": "string",
+        "enum": [
+          "MANUAL",
+          "PR_AUTO"
+        ]
+      },
+      "FeedListItem": {
+        "type": "object",
+        "required": [
+          "_id",
+          "userId",
+          "boxId",
+          "checkinId",
+          "text",
+          "source",
+          "createdAt"
+        ],
+        "properties": {
+          "_id": {
+            "$ref": "#/components/schemas/ObjectId"
+          },
+          "userId": {
+            "$ref": "#/components/schemas/ObjectId"
+          },
+          "boxId": {
+            "$ref": "#/components/schemas/ObjectId"
+          },
+          "checkinId": {
+            "$ref": "#/components/schemas/ObjectId"
+          },
+          "resultId": {
+            "$ref": "#/components/schemas/ObjectId"
+          },
+          "text": {
+            "type": "string",
+            "example": "Treino pesado hoje, mas valeu cada rep!"
+          },
+          "photoUrl": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "uri"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "source": {
+            "$ref": "#/components/schemas/FeedPostSource"
+          },
+          "authorName": {
+            "oneOf": [
+              {
+                "type": "string",
+                "example": "Joao Aluno"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "boxName": {
+            "oneOf": [
+              {
+                "type": "string",
+                "example": "Cross Alpha"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ResultListItem": {
+        "type": "object",
+        "required": [
+          "_id",
+          "userId",
+          "boxId",
+          "score",
+          "scoreKind",
+          "isNewPR",
+          "createdAt"
+        ],
+        "properties": {
+          "_id": {
+            "$ref": "#/components/schemas/ObjectId"
+          },
+          "userId": {
+            "$ref": "#/components/schemas/ObjectId"
+          },
+          "boxId": {
+            "$ref": "#/components/schemas/ObjectId"
+          },
+          "wodId": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ObjectId"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "exerciseId": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ObjectId"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "score": {
+            "type": "string",
+            "example": "95kg"
+          },
+          "scoreKind": {
+            "$ref": "#/components/schemas/ResultScoreKind"
+          },
+          "isNewPR": {
+            "type": "boolean",
+            "example": true
+          },
+          "exerciseName": {
+            "oneOf": [
+              {
+                "type": "string",
+                "example": "Deadlift"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "wodTitle": {
+            "oneOf": [
+              {
+                "type": "string",
+                "example": "Cross Alpha WOD 2026-04-03"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "wodDate": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "wodModel": {
+            "$ref": "#/components/schemas/WodModel"
+          }
+        }
+      },
+      "WodModel": {
+        "type": "string",
+        "enum": [
+          "AMRAP",
+          "FOR_TIME",
+          "EMOM",
+          "TABATA",
+          "RFT",
+          "CHIPPER",
+          "LADDER",
+          "INTERVALS"
+        ]
       }
     }
   }

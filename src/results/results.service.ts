@@ -1,7 +1,7 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { Db, ObjectId } from 'mongodb';
 import { MONGO_CLIENT } from '../database/database.constants';
-import { AutoPrPostStatus, ResultScoreKind } from '../common/enums';
+import { AutoPrPostStatus, ResultScoreKind, WodModel } from '../common/enums';
 import { Exercise } from '../exercises/interfaces/exercise.interface';
 import { FeedService } from '../feed/feed.service';
 import { Wod } from '../wods/interfaces/wod.interface';
@@ -22,8 +22,8 @@ export class ResultsService {
   ) {}
 
   async create(userId: string, boxId: string, dto: CreateResultDto) {
-    await this.ensureWodExistsForBox(dto.wodId, boxId);
-    const exercise = await this.ensureExerciseExistsForBox(dto.exerciseId, boxId);
+    const wod = await this.ensureWodExistsForBox(dto.wodId, boxId);
+    this.validateScoreForWod(dto.score, wod);
 
     const currentParsedScore = this.parseScore(dto.score);
 
@@ -32,7 +32,8 @@ export class ResultsService {
       .find({
         userId: new ObjectId(userId),
         boxId: new ObjectId(boxId),
-        exerciseId: new ObjectId(dto.exerciseId),
+        exerciseId: { $exists: false },
+        wodTitle: wod.title,
       })
       .toArray();
 
@@ -42,7 +43,8 @@ export class ResultsService {
       userId: new ObjectId(userId),
       boxId: new ObjectId(boxId),
       wodId: new ObjectId(dto.wodId),
-      exerciseId: new ObjectId(dto.exerciseId),
+      wodModel: wod.model,
+      wodTitle: wod.title,
       score: dto.score,
       scoreKind: currentParsedScore?.kind ?? ResultScoreKind.UNKNOWN,
       isNewPR,
@@ -55,7 +57,7 @@ export class ResultsService {
       boxId,
       resultId: insertResult.insertedId,
       isNewPR,
-      exerciseName: exercise.name,
+      exerciseName: wod.title,
       score: dto.score,
       customText: dto.autoPostText,
     });
@@ -115,7 +117,111 @@ export class ResultsService {
     };
   }
 
-  private async ensureWodExistsForBox(wodId: string, boxId: string): Promise<void> {
+  async listByUser(userId: string, boxId: string, limit = 50) {
+    const normalizedLimit = Math.min(Math.max(limit, 1), 200);
+
+    return this.db
+      .collection<Result>('results')
+      .aggregate([
+        {
+          $match: {
+            userId: new ObjectId(userId),
+            boxId: new ObjectId(boxId),
+            exerciseId: { $exists: false },
+          },
+        },
+        { $sort: { createdAt: -1 } },
+        { $limit: normalizedLimit },
+        {
+          $lookup: {
+            from: 'exercises',
+            localField: 'exerciseId',
+            foreignField: '_id',
+            as: 'exercise',
+          },
+        },
+        {
+          $lookup: {
+            from: 'wods',
+            localField: 'wodId',
+            foreignField: '_id',
+            as: 'wod',
+          },
+        },
+        {
+          $project: {
+            _id: 1,
+            userId: 1,
+            boxId: 1,
+            wodId: 1,
+            exerciseId: 1,
+            score: 1,
+            scoreKind: 1,
+            isNewPR: 1,
+            createdAt: 1,
+            wodModel: 1,
+            exerciseName: { $ifNull: [{ $arrayElemAt: ['$exercise.name', 0] }, null] },
+            wodTitle: { $ifNull: [{ $arrayElemAt: ['$wod.title', 0] }, null] },
+            wodDate: { $ifNull: [{ $arrayElemAt: ['$wod.date', 0] }, null] },
+          },
+        },
+      ])
+      .toArray();
+  }
+
+  async listPrByUser(userId: string, boxId: string, limit = 50) {
+    const normalizedLimit = Math.min(Math.max(limit, 1), 200);
+
+    return this.db
+      .collection<Result>('results')
+      .aggregate([
+        {
+          $match: {
+            userId: new ObjectId(userId),
+            boxId: new ObjectId(boxId),
+            isNewPR: true,
+            exerciseId: { $exists: true },
+          },
+        },
+        { $sort: { createdAt: -1 } },
+        { $limit: normalizedLimit },
+        {
+          $lookup: {
+            from: 'exercises',
+            localField: 'exerciseId',
+            foreignField: '_id',
+            as: 'exercise',
+          },
+        },
+        {
+          $lookup: {
+            from: 'wods',
+            localField: 'wodId',
+            foreignField: '_id',
+            as: 'wod',
+          },
+        },
+        {
+          $project: {
+            _id: 1,
+            userId: 1,
+            boxId: 1,
+            wodId: 1,
+            exerciseId: 1,
+            score: 1,
+            scoreKind: 1,
+            isNewPR: 1,
+            createdAt: 1,
+            exerciseName: { $ifNull: [{ $arrayElemAt: ['$exercise.name', 0] }, null] },
+            wodTitle: { $ifNull: [{ $arrayElemAt: ['$wod.title', 0] }, null] },
+            wodDate: { $ifNull: [{ $arrayElemAt: ['$wod.date', 0] }, null] },
+          },
+        },
+      ])
+      .toArray();
+  }
+
+  private async ensureWodExistsForBox(wodId: string, boxId: string): Promise<Wod> {
     const wod = await this.db.collection<Wod>('wods').findOne({
       _id: new ObjectId(wodId),
       boxId: new ObjectId(boxId),
@@ -124,6 +230,65 @@ export class ResultsService {
     if (!wod) {
       throw new NotFoundException('WOD nao encontrado para este box');
     }
+
+    return wod;
+  }
+
+  private validateScoreForWod(score: string, wod: Wod): void {
+    const mode = this.detectWodResultMode(wod);
+    const normalizedScore = score.trim().toLowerCase();
+    const isTime = this.parseTimeToSeconds(normalizedScore) !== null;
+    const isReps = this.parseRepsScore(normalizedScore) !== null;
+
+    const repsOnlyModels: WodModel[] = [WodModel.AMRAP, WodModel.EMOM, WodModel.TABATA];
+    const timeOnlyModels: WodModel[] = [WodModel.FOR_TIME, WodModel.RFT, WodModel.CHIPPER];
+    const repsOrTimeModels: WodModel[] = [WodModel.LADDER, WodModel.INTERVALS];
+
+    if (!mode) {
+      return;
+    }
+
+    if (repsOnlyModels.includes(mode) && !isReps) {
+      throw new BadRequestException(
+        `Para WOD ${mode}, o score deve representar repeticoes (ex: 120, 120 reps ou 7+12)`,
+      );
+    }
+
+    if (timeOnlyModels.includes(mode) && !isTime) {
+      throw new BadRequestException(
+        `Para WOD ${mode}, o score deve estar em formato de tempo (ex: 12:34 ou 01:02:33)`,
+      );
+    }
+
+    if (repsOrTimeModels.includes(mode) && !isReps && !isTime) {
+      throw new BadRequestException(
+        `Para WOD ${mode}, o score deve ser tempo (ex: 12:34) ou repeticoes (ex: 120 ou 7+12)`,
+      );
+    }
+  }
+
+  private detectWodResultMode(wod: Wod): WodModel | null {
+    if (wod.model) {
+      return wod.model;
+    }
+
+    const mergedText = [
+      wod.title,
+      ...wod.blocks.flatMap((block) => [block.title, block.content]),
+    ]
+      .join(' ')
+      .toUpperCase();
+
+    if (/\bAMRAP\b/.test(mergedText)) return WodModel.AMRAP;
+    if (/\bFOR\s*TIME\b|\bFORTIME\b/.test(mergedText)) return WodModel.FOR_TIME;
+    if (/\bEMOM\b/.test(mergedText)) return WodModel.EMOM;
+    if (/\bTABATA\b/.test(mergedText)) return WodModel.TABATA;
+    if (/\bRFT\b|\bROUNDS?\s+FOR\s+TIME\b/.test(mergedText)) return WodModel.RFT;
+    if (/\bCHIPPER\b/.test(mergedText)) return WodModel.CHIPPER;
+    if (/\bLADDER\b/.test(mergedText)) return WodModel.LADDER;
+    if (/\bINTERVALS?\b/.test(mergedText)) return WodModel.INTERVALS;
+
+    return null;
   }
 
   private async ensureExerciseExistsForBox(exerciseId: string, boxId: string): Promise<Exercise> {
@@ -209,6 +374,11 @@ export class ResultsService {
       return { kind: ResultScoreKind.TIME, value: parsedTime };
     }
 
+    const parsedReps = this.parseRepsScore(normalized);
+    if (parsedReps !== null) {
+      return { kind: ResultScoreKind.LOAD, value: parsedReps };
+    }
+
     const numericMatch = normalized.match(/-?\d+(?:\.\d+)?/);
     if (!numericMatch) {
       return null;
@@ -237,5 +407,23 @@ export class ResultsService {
 
     const [hours, minutes, seconds] = numbers;
     return hours * 3600 + minutes * 60 + seconds;
+  }
+
+  private parseRepsScore(raw: string): number | null {
+    const normalized = raw.trim().toLowerCase();
+
+    const roundsPlusReps = normalized.match(/^(\d+)\s*\+\s*(\d+)$/);
+    if (roundsPlusReps) {
+      const rounds = Number(roundsPlusReps[1]);
+      const reps = Number(roundsPlusReps[2]);
+      return rounds * 1000 + reps;
+    }
+
+    const repsOnly = normalized.match(/^(\d+)(\s*(rep|reps))?$/);
+    if (repsOnly) {
+      return Number(repsOnly[1]);
+    }
+
+    return null;
   }
 }

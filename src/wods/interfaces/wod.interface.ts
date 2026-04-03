@@ -1,7 +1,7 @@
 import { ObjectId } from 'mongodb';
-import { WodBlockType } from '../../common/enums';
+import { WodBlockType, WodModel } from '../../common/enums';
 
-export { WodBlockType };
+export { WodBlockType, WodModel };
 
 export interface WodBlock {
   type: WodBlockType;
@@ -14,6 +14,7 @@ export interface Wod {
   boxId: ObjectId;
   date: Date;
   title: string;
+  model?: WodModel;
   blocks: WodBlock[];
   createdAt: Date;
 }

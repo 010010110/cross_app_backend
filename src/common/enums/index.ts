@@ -8,3 +8,4 @@ export { RewardStreakState } from './reward-streak-state.enum';
 export { RewardXpLedgerType } from './reward-xp-ledger-type.enum';
 export { UserRole } from './user-role.enum';
 export { WodBlockType } from './wod-block-type.enum';
+export { WodModel } from './wod-model.enum';

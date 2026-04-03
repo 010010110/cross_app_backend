@@ -2,7 +2,7 @@ import { ConflictException, Inject, Injectable } from '@nestjs/common';
 import { Db, ObjectId } from 'mongodb';
 import { MONGO_CLIENT } from '../database/database.constants';
 import { CreateWodDto } from './dto/create-wod.dto';
-import { Wod } from './interfaces/wod.interface';
+import { Wod, WodModel } from './interfaces/wod.interface';
 
 @Injectable()
 export class WodsService {
@@ -30,6 +30,7 @@ export class WodsService {
       boxId: new ObjectId(boxId),
       date: trainingDateLocalStart,
       title: dto.title,
+      model: dto.model ?? this.inferWodModel(dto.title, dto.blocks),
       blocks: dto.blocks,
       createdAt: new Date(),
     };
@@ -83,5 +84,22 @@ export class WodsService {
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
+  }
+
+  private inferWodModel(title: string, blocks: Wod['blocks']): WodModel | undefined {
+    const content = [title, ...blocks.flatMap((block) => [block.title, block.content])]
+      .join(' ')
+      .toUpperCase();
+
+    if (/\bAMRAP\b/.test(content)) return WodModel.AMRAP;
+    if (/\bFOR\s*TIME\b|\bFORTIME\b/.test(content)) return WodModel.FOR_TIME;
+    if (/\bEMOM\b/.test(content)) return WodModel.EMOM;
+    if (/\bTABATA\b/.test(content)) return WodModel.TABATA;
+    if (/\bRFT\b|\bROUNDS?\s+FOR\s+TIME\b/.test(content)) return WodModel.RFT;
+    if (/\bCHIPPER\b/.test(content)) return WodModel.CHIPPER;
+    if (/\bLADDER\b/.test(content)) return WodModel.LADDER;
+    if (/\bINTERVALS?\b/.test(content)) return WodModel.INTERVALS;
+
+    return undefined;
   }
 }
