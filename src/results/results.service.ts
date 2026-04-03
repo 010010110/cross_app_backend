@@ -21,58 +21,35 @@ export class ResultsService {
     private readonly feedService: FeedService,
   ) {}
 
-  async create(userId: string, boxId: string, dto: CreateResultDto) {
-    const wod = await this.ensureWodExistsForBox(dto.wodId, boxId);
+  async create(userId: string, userBoxIds: string[], dto: CreateResultDto) {
+    const wod = await this.ensureWodExistsForUser(dto.wodId, userBoxIds);
     this.validateScoreForWod(dto.score, wod);
 
     const currentParsedScore = this.parseScore(dto.score);
 
-    const history = await this.db
-      .collection<Result>('results')
-      .find({
-        userId: new ObjectId(userId),
-        boxId: new ObjectId(boxId),
-        exerciseId: { $exists: false },
-        wodTitle: wod.title,
-      })
-      .toArray();
-
-    const isNewPR = this.isNewPersonalRecord(currentParsedScore, history);
-
     const result: Result = {
       userId: new ObjectId(userId),
-      boxId: new ObjectId(boxId),
+      boxId: wod.boxId,
       wodId: new ObjectId(dto.wodId),
       wodModel: wod.model,
       wodTitle: wod.title,
       score: dto.score,
       scoreKind: currentParsedScore?.kind ?? ResultScoreKind.UNKNOWN,
-      isNewPR,
       createdAt: new Date(),
     };
 
     const insertResult = await this.db.collection<Result>('results').insertOne(result);
-    const autoFeedPost = await this.tryCreateAutoPostForNewPr({
-      userId,
-      boxId,
-      resultId: insertResult.insertedId,
-      isNewPR,
-      exerciseName: wod.title,
-      score: dto.score,
-      customText: dto.autoPostText,
-    });
 
     return {
       resultId: insertResult.insertedId,
-      isNewPR,
       scoreKind: result.scoreKind,
-      autoFeedPost,
-      message: 'Resultado salvo com sucesso',
+      message: 'Resultado do WOD salvo com sucesso',
     };
   }
 
-  async createPrByExercise(userId: string, boxId: string, dto: CreateExercisePrDto) {
-    const exercise = await this.ensureExerciseExistsForBox(dto.exerciseId, boxId);
+  async createPrByExercise(userId: string, userBoxIds: string[], dto: CreateExercisePrDto) {
+    const exercise = await this.ensureExerciseExistsForUser(dto.exerciseId, userBoxIds);
+    const resolvedBoxId = this.resolveResultBoxIdForExercise(userBoxIds, exercise.boxId);
 
     const currentParsedScore = this.parseScore(dto.score);
 
@@ -80,7 +57,6 @@ export class ResultsService {
       .collection<Result>('results')
       .find({
         userId: new ObjectId(userId),
-        boxId: new ObjectId(boxId),
         exerciseId: new ObjectId(dto.exerciseId),
       })
       .toArray();
@@ -89,7 +65,7 @@ export class ResultsService {
 
     const result: Result = {
       userId: new ObjectId(userId),
-      boxId: new ObjectId(boxId),
+      boxId: resolvedBoxId,
       exerciseId: new ObjectId(dto.exerciseId),
       score: dto.score,
       scoreKind: currentParsedScore?.kind ?? ResultScoreKind.UNKNOWN,
@@ -100,7 +76,7 @@ export class ResultsService {
     const insertResult = await this.db.collection<Result>('results').insertOne(result);
     const autoFeedPost = await this.tryCreateAutoPostForNewPr({
       userId,
-      boxId,
+      boxId: resolvedBoxId.toHexString(),
       resultId: insertResult.insertedId,
       isNewPR,
       exerciseName: exercise.name,
@@ -117,7 +93,7 @@ export class ResultsService {
     };
   }
 
-  async listByUser(userId: string, boxId: string, limit = 50) {
+  async listByUser(userId: string, limit = 50) {
     const normalizedLimit = Math.min(Math.max(limit, 1), 200);
 
     return this.db
@@ -126,7 +102,6 @@ export class ResultsService {
         {
           $match: {
             userId: new ObjectId(userId),
-            boxId: new ObjectId(boxId),
             exerciseId: { $exists: false },
           },
         },
@@ -157,7 +132,6 @@ export class ResultsService {
             exerciseId: 1,
             score: 1,
             scoreKind: 1,
-            isNewPR: 1,
             createdAt: 1,
             wodModel: 1,
             exerciseName: { $ifNull: [{ $arrayElemAt: ['$exercise.name', 0] }, null] },
@@ -169,7 +143,7 @@ export class ResultsService {
       .toArray();
   }
 
-  async listPrByUser(userId: string, boxId: string, limit = 50) {
+  async listPrByUser(userId: string, limit = 50) {
     const normalizedLimit = Math.min(Math.max(limit, 1), 200);
 
     return this.db
@@ -178,7 +152,6 @@ export class ResultsService {
         {
           $match: {
             userId: new ObjectId(userId),
-            boxId: new ObjectId(boxId),
             isNewPR: true,
             exerciseId: { $exists: true },
           },
@@ -221,14 +194,23 @@ export class ResultsService {
       .toArray();
   }
 
-  private async ensureWodExistsForBox(wodId: string, boxId: string): Promise<Wod> {
-    const wod = await this.db.collection<Wod>('wods').findOne({
+  private async ensureWodExistsForUser(wodId: string, userBoxIds: string[]): Promise<Wod> {
+    const normalizedUserBoxIds = userBoxIds
+      .filter((id) => ObjectId.isValid(id))
+      .map((id) => new ObjectId(id));
+
+    const query: { _id: ObjectId; boxId?: { $in: ObjectId[] } } = {
       _id: new ObjectId(wodId),
-      boxId: new ObjectId(boxId),
-    });
+    };
+
+    if (normalizedUserBoxIds.length > 0) {
+      query.boxId = { $in: normalizedUserBoxIds };
+    }
+
+    const wod = await this.db.collection<Wod>('wods').findOne(query);
 
     if (!wod) {
-      throw new NotFoundException('WOD nao encontrado para este box');
+      throw new NotFoundException('WOD nao encontrado para este usuario');
     }
 
     return wod;
@@ -291,17 +273,37 @@ export class ResultsService {
     return null;
   }
 
-  private async ensureExerciseExistsForBox(exerciseId: string, boxId: string): Promise<Exercise> {
+  private async ensureExerciseExistsForUser(exerciseId: string, userBoxIds: string[]): Promise<Exercise> {
+    const normalizedUserBoxIds = userBoxIds
+      .filter((id) => ObjectId.isValid(id))
+      .map((id) => new ObjectId(id));
+
+    const boxClauses = normalizedUserBoxIds.map((boxId) => ({ boxId }));
+
     const exercise = await this.db.collection<Exercise>('exercises').findOne({
       _id: new ObjectId(exerciseId),
-      $or: [{ isGlobal: true }, { boxId: new ObjectId(boxId) }],
+      $or: [{ isGlobal: true }, ...boxClauses],
     });
 
     if (!exercise) {
-      throw new NotFoundException('Exercicio nao encontrado para este box');
+      throw new NotFoundException('Exercicio nao encontrado para este usuario');
     }
 
     return exercise;
+  }
+
+  private resolveResultBoxIdForExercise(userBoxIds: string[], exerciseBoxId?: ObjectId): ObjectId {
+    if (exerciseBoxId) {
+      return exerciseBoxId;
+    }
+
+    const fallbackUserBoxId = userBoxIds.find((id) => ObjectId.isValid(id));
+
+    if (!fallbackUserBoxId) {
+      throw new BadRequestException('Nao foi possivel determinar box de contexto para este resultado');
+    }
+
+    return new ObjectId(fallbackUserBoxId);
   }
 
   private async tryCreateAutoPostForNewPr(params: {

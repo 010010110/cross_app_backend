@@ -147,7 +147,6 @@ async function seedPrsForStudentInBox(db, student, boxId, options) {
       wodId: wod._id,
       wodTitle: wod.title,
       score,
-      isNewPR: true,
     };
 
     const result = await db.collection('results').updateOne(

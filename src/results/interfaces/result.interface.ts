@@ -13,6 +13,6 @@ export interface Result {
   wodTitle?: string;
   score: string;
   scoreKind: ResultScoreKind;
-  isNewPR: boolean;
+  isNewPR?: boolean;
   createdAt: Date;
 }

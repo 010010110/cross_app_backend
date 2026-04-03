@@ -783,16 +783,11 @@
         "tags": [
           "Results"
         ],
-        "summary": "Registra resultado de treino e identifica novo PR",
-        "description": "Salva o score final do WOD completo e marca isNewPR=true quando o score supera o melhor historico do proprio aluno para o mesmo benchmark (titulo do WOD). Regras por modelo: AMRAP/EMOM/TABATA aceitam repeticoes; FOR_TIME/RFT/CHIPPER aceitam tempo; LADDER/INTERVALS aceitam tempo ou repeticoes.",
+        "summary": "Registra resultado final do WOD",
+        "description": "Salva o score final do WOD completo do aluno autenticado. Regras por modelo: AMRAP/EMOM/TABATA aceitam repeticoes; FOR_TIME/RFT/CHIPPER aceitam tempo; LADDER/INTERVALS aceitam tempo ou repeticoes.",
         "security": [
           {
             "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/XBoxIdHeader"
           }
         ],
         "requestBody": {
@@ -811,7 +806,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CreateResultResponse"
+                  "$ref": "#/components/schemas/CreateWodResultResponse"
                 }
               }
             }
@@ -837,7 +832,7 @@
             }
           },
           "404": {
-            "description": "WOD nao encontrado para o box",
+            "description": "WOD nao encontrado para o usuario",
             "content": {
               "application/json": {
                 "schema": {
@@ -852,16 +847,13 @@
         "tags": [
           "Results"
         ],
-        "summary": "Lista resultados do aluno no box atual",
+        "summary": "Lista resultados de WOD do aluno autenticado",
         "security": [
           {
             "bearerAuth": []
           }
         ],
         "parameters": [
-          {
-            "$ref": "#/components/parameters/XBoxIdHeader"
-          },
           {
             "name": "limit",
             "in": "query",
@@ -883,7 +875,7 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/ResultListItem"
+                    "$ref": "#/components/schemas/WodResultListItem"
                   }
                 },
                 "examples": {
@@ -898,8 +890,6 @@
                         "exerciseId": "67eaa001ac5d89c8bb9d3101",
                         "score": "95kg",
                         "scoreKind": "LOAD",
-                        "isNewPR": true,
-                        "exerciseName": "Deadlift",
                         "wodTitle": "Cross Alpha WOD 2026-04-03",
                         "wodDate": "2026-04-03T00:00:00.000Z",
                         "createdAt": "2026-04-03T10:30:00.000Z"
@@ -929,15 +919,10 @@
           "Results"
         ],
         "summary": "Registra PR direto por exercicio",
-        "description": "Permite ao aluno selecionar um exercicio (via GET /exercises) e salvar um PR sem vincular ao WOD, com comparacao de historico por exerciseId.",
+        "description": "Permite ao aluno selecionar um exercicio e salvar um PR sem vincular ao WOD, com comparacao de historico por exerciseId.",
         "security": [
           {
             "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/XBoxIdHeader"
           }
         ],
         "requestBody": {
@@ -982,7 +967,7 @@
             }
           },
           "404": {
-            "description": "Exercicio nao encontrado para o box",
+            "description": "Exercicio nao encontrado para o usuario",
             "content": {
               "application/json": {
                 "schema": {
@@ -997,16 +982,13 @@
         "tags": [
           "Results"
         ],
-        "summary": "Lista PRs do aluno no box atual",
+        "summary": "Lista PRs do aluno autenticado",
         "security": [
           {
             "bearerAuth": []
           }
         ],
         "parameters": [
-          {
-            "$ref": "#/components/parameters/XBoxIdHeader"
-          },
           {
             "name": "limit",
             "in": "query",
@@ -1028,7 +1010,7 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/ResultListItem"
+                    "$ref": "#/components/schemas/ExercisePrListItem"
                   }
                 },
                 "examples": {
@@ -3103,7 +3085,6 @@
           "boxId",
           "score",
           "scoreKind",
-          "isNewPR",
           "createdAt"
         ],
         "properties": {
@@ -3144,7 +3125,14 @@
             "$ref": "#/components/schemas/ResultScoreKind"
           },
           "isNewPR": {
-            "type": "boolean",
+            "oneOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "example": true
           },
           "exerciseName": {
@@ -3201,6 +3189,180 @@
           "LADDER",
           "INTERVALS"
         ]
+      },
+      "CreateWodResultResponse": {
+        "type": "object",
+        "required": [
+          "resultId",
+          "scoreKind",
+          "message"
+        ],
+        "properties": {
+          "resultId": {
+            "$ref": "#/components/schemas/ObjectId"
+          },
+          "scoreKind": {
+            "$ref": "#/components/schemas/ResultScoreKind"
+          },
+          "message": {
+            "type": "string",
+            "example": "Resultado do WOD salvo com sucesso"
+          }
+        }
+      },
+      "WodResultListItem": {
+        "type": "object",
+        "required": [
+          "_id",
+          "userId",
+          "boxId",
+          "wodId",
+          "score",
+          "scoreKind",
+          "createdAt"
+        ],
+        "properties": {
+          "_id": {
+            "$ref": "#/components/schemas/ObjectId"
+          },
+          "userId": {
+            "$ref": "#/components/schemas/ObjectId"
+          },
+          "boxId": {
+            "$ref": "#/components/schemas/ObjectId"
+          },
+          "wodId": {
+            "$ref": "#/components/schemas/ObjectId"
+          },
+          "score": {
+            "type": "string",
+            "example": "7+12"
+          },
+          "scoreKind": {
+            "$ref": "#/components/schemas/ResultScoreKind"
+          },
+          "wodModel": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/WodModel"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "wodTitle": {
+            "oneOf": [
+              {
+                "type": "string",
+                "example": "Open 24.1"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "wodDate": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ExercisePrListItem": {
+        "type": "object",
+        "required": [
+          "_id",
+          "userId",
+          "boxId",
+          "exerciseId",
+          "score",
+          "scoreKind",
+          "isNewPR",
+          "createdAt"
+        ],
+        "properties": {
+          "_id": {
+            "$ref": "#/components/schemas/ObjectId"
+          },
+          "userId": {
+            "$ref": "#/components/schemas/ObjectId"
+          },
+          "boxId": {
+            "$ref": "#/components/schemas/ObjectId"
+          },
+          "wodId": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ObjectId"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "exerciseId": {
+            "$ref": "#/components/schemas/ObjectId"
+          },
+          "score": {
+            "type": "string",
+            "example": "95kg"
+          },
+          "scoreKind": {
+            "$ref": "#/components/schemas/ResultScoreKind"
+          },
+          "isNewPR": {
+            "type": "boolean",
+            "example": true
+          },
+          "exerciseName": {
+            "oneOf": [
+              {
+                "type": "string",
+                "example": "Deadlift"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "wodTitle": {
+            "oneOf": [
+              {
+                "type": "string",
+                "example": "Cross Alpha WOD 2026-04-03"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "wodDate": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
       }
     }
   }
