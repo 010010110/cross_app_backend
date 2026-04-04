@@ -13,5 +13,6 @@ export interface RewardXpLedger {
   metadata?: {
     streakDays?: number;
     rewardFreeze?: number;
+    weekStartDate?: string;
   };
 }
