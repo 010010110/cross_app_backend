@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { AdminReportsModule } from './admin-reports/admin-reports.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
@@ -19,6 +20,7 @@ import { WodsModule } from './wods/wods.module';
     ConfigModule.forRoot({
       isGlobal: true,
     }),
+    AdminReportsModule,
     DatabaseModule,
     AuthModule,
     BoxesModule,
