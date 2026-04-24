@@ -14,7 +14,8 @@ export class CreateExerciseDto {
     enum: ExerciseCategory,
   })
   @IsEnum(ExerciseCategory, {
-    message: 'category deve ser WEIGHTLIFTING, GYMNASTICS, MONOSTRUCTURAL ou ACCESSORY',
+    message:
+      'category deve ser WEIGHTLIFTING, GYMNASTICS, MONOSTRUCTURAL ou ACCESSORY',
   })
   category: string;
 }

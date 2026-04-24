@@ -1,6 +1,12 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
-import { IsMongoId, IsNotEmpty, IsOptional, IsString, Length } from 'class-validator';
+import {
+  IsMongoId,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  Length,
+} from 'class-validator';
 
 export class CreateExercisePrDto {
   @ApiProperty({
@@ -23,7 +29,8 @@ export class CreateExercisePrDto {
 
   @ApiProperty({
     required: false,
-    description: 'Texto customizado para auto-post no feed quando houver novo PR',
+    description:
+      'Texto customizado para auto-post no feed quando houver novo PR',
     example: 'PR no squat! Consistencia ta valendo a pena.',
   })
   @Transform(({ value }) => (value == null ? value : String(value).trim()))

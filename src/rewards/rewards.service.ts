@@ -3,7 +3,11 @@ import { Db, ObjectId } from 'mongodb';
 import { MONGO_CLIENT } from '../database/database.constants';
 import { RewardMilestone } from './interfaces/reward-milestone.interface';
 import { RewardStreak } from './interfaces/reward-streak.interface';
-import { CheckinActivityStatus, RewardStreakState, RewardXpLedgerType } from '../common/enums';
+import {
+  CheckinActivityStatus,
+  RewardStreakState,
+  RewardXpLedgerType,
+} from '../common/enums';
 import { RewardXpLedger } from './interfaces/reward-xp-ledger.interface';
 
 const DAILY_CHECKIN_XP = 10;
@@ -32,7 +36,11 @@ export class RewardsService {
     const isSaturdayCheckin = this.isSaturday(activityDay);
     const isSundayCheckin = this.isSunday(activityDay);
     const hasCompletedFullWeek = isSundayCheckin
-      ? await this.hasCompletedSevenDayWeek(normalizedUserId, normalizedBoxId, activityDay)
+      ? await this.hasCompletedSevenDayWeek(
+          normalizedUserId,
+          normalizedBoxId,
+          activityDay,
+        )
       : false;
     const checkinXp =
       DAILY_CHECKIN_XP +
@@ -47,7 +55,10 @@ export class RewardsService {
     });
 
     if (!streak) {
-      const fullWeekFreezeBonus = this.resolveFullWeekFreezeBonus(hasCompletedFullWeek, []);
+      const fullWeekFreezeBonus = this.resolveFullWeekFreezeBonus(
+        hasCompletedFullWeek,
+        [],
+      );
       const createdStreak: RewardStreak = {
         userId: normalizedUserId,
         boxId: normalizedBoxId,
@@ -61,9 +72,15 @@ export class RewardsService {
       };
 
       await streakCollection.insertOne(createdStreak);
-      await this.createXpLedger(normalizedUserId, normalizedBoxId, RewardXpLedgerType.CHECKIN_DAILY, DAILY_CHECKIN_XP, {
-        streakDays: 1,
-      });
+      await this.createXpLedger(
+        normalizedUserId,
+        normalizedBoxId,
+        RewardXpLedgerType.CHECKIN_DAILY,
+        DAILY_CHECKIN_XP,
+        {
+          streakDays: 1,
+        },
+      );
       if (isSaturdayCheckin) {
         await this.createXpLedger(
           normalizedUserId,
@@ -140,7 +157,10 @@ export class RewardsService {
       };
     }
 
-    const missedRequiredDays = this.countRequiredDaysBetween(lastActivityDay, activityDay);
+    const missedRequiredDays = this.countRequiredDaysBetween(
+      lastActivityDay,
+      activityDay,
+    );
     let currentStreak = 1;
     let longestStreak = streak.longestStreak;
     let availableFreezes = streak.availableFreezes;
@@ -155,7 +175,12 @@ export class RewardsService {
       longestStreak = Math.max(streak.longestStreak, currentStreak);
       availableFreezes = streak.availableFreezes - 1;
       freezeUsed = true;
-      await this.createXpLedger(normalizedUserId, normalizedBoxId, RewardXpLedgerType.FREEZE_CONSUMED, 0);
+      await this.createXpLedger(
+        normalizedUserId,
+        normalizedBoxId,
+        RewardXpLedgerType.FREEZE_CONSUMED,
+        0,
+      );
     }
 
     const milestoneUnlocks = await this.unlockMilestones({
@@ -165,8 +190,14 @@ export class RewardsService {
     });
 
     totalXp += milestoneUnlocks.bonusXp;
-    const fullWeekFreezeBonus = this.resolveFullWeekFreezeBonus(hasCompletedFullWeek, milestoneUnlocks.unlocked);
-    availableFreezes = Math.min(MAX_FREEZES, availableFreezes + milestoneUnlocks.bonusFreezes + fullWeekFreezeBonus);
+    const fullWeekFreezeBonus = this.resolveFullWeekFreezeBonus(
+      hasCompletedFullWeek,
+      milestoneUnlocks.unlocked,
+    );
+    availableFreezes = Math.min(
+      MAX_FREEZES,
+      availableFreezes + milestoneUnlocks.bonusFreezes + fullWeekFreezeBonus,
+    );
 
     await streakCollection.updateOne(
       { _id: streak._id },
@@ -182,9 +213,15 @@ export class RewardsService {
       },
     );
 
-    await this.createXpLedger(normalizedUserId, normalizedBoxId, RewardXpLedgerType.CHECKIN_DAILY, DAILY_CHECKIN_XP, {
-      streakDays: currentStreak,
-    });
+    await this.createXpLedger(
+      normalizedUserId,
+      normalizedBoxId,
+      RewardXpLedgerType.CHECKIN_DAILY,
+      DAILY_CHECKIN_XP,
+      {
+        streakDays: currentStreak,
+      },
+    );
     if (isSaturdayCheckin) {
       await this.createXpLedger(
         normalizedUserId,
@@ -234,10 +271,12 @@ export class RewardsService {
   }
 
   async getMySummary(userId: string, boxId: string) {
-    const streak = await this.db.collection<RewardStreak>('reward_streaks').findOne({
-      userId: new ObjectId(userId),
-      boxId: new ObjectId(boxId),
-    });
+    const streak = await this.db
+      .collection<RewardStreak>('reward_streaks')
+      .findOne({
+        userId: new ObjectId(userId),
+        boxId: new ObjectId(boxId),
+      });
 
     if (!streak) {
       return {
@@ -255,10 +294,19 @@ export class RewardsService {
     const currentDay = this.normalizeToDayStart(new Date());
     const lastActivityDay = this.normalizeToDayStart(streak.lastActivityDate);
     const daysSinceLastActivity = this.diffInDays(lastActivityDay, currentDay);
-    const missedRequiredDays = this.countRequiredDaysBetween(lastActivityDay, currentDay);
-    const streakState = this.getStreakState(missedRequiredDays, streak.availableFreezes);
-    const effectiveCurrentStreak = streakState === RewardStreakState.BROKEN ? 0 : streak.currentStreak;
-    const nextMilestone = MILESTONES.find((item) => item.streakDays > effectiveCurrentStreak)?.streakDays ?? null;
+    const missedRequiredDays = this.countRequiredDaysBetween(
+      lastActivityDay,
+      currentDay,
+    );
+    const streakState = this.getStreakState(
+      missedRequiredDays,
+      streak.availableFreezes,
+    );
+    const effectiveCurrentStreak =
+      streakState === RewardStreakState.BROKEN ? 0 : streak.currentStreak;
+    const nextMilestone =
+      MILESTONES.find((item) => item.streakDays > effectiveCurrentStreak)
+        ?.streakDays ?? null;
 
     return {
       currentStreak: effectiveCurrentStreak,
@@ -291,7 +339,8 @@ export class RewardsService {
     const unlocked: number[] = [];
     let bonusXp = 0;
     let bonusFreezes = 0;
-    const milestonesCollection = this.db.collection<RewardMilestone>('reward_milestones');
+    const milestonesCollection =
+      this.db.collection<RewardMilestone>('reward_milestones');
 
     for (const milestone of MILESTONES) {
       if (params.currentStreak < milestone.streakDays) {
@@ -318,10 +367,16 @@ export class RewardsService {
       };
 
       await milestonesCollection.insertOne(rewardMilestone);
-      await this.createXpLedger(params.userId, params.boxId, RewardXpLedgerType.STREAK_MILESTONE, milestone.rewardXp, {
-        streakDays: milestone.streakDays,
-        rewardFreeze: milestone.rewardFreeze,
-      });
+      await this.createXpLedger(
+        params.userId,
+        params.boxId,
+        RewardXpLedgerType.STREAK_MILESTONE,
+        milestone.rewardXp,
+        {
+          streakDays: milestone.streakDays,
+          rewardFreeze: milestone.rewardFreeze,
+        },
+      );
 
       unlocked.push(milestone.streakDays);
       bonusXp += milestone.rewardXp;
@@ -347,7 +402,9 @@ export class RewardsService {
       metadata,
     };
 
-    await this.db.collection<RewardXpLedger>('reward_xp_ledger').insertOne(ledgerEntry);
+    await this.db
+      .collection<RewardXpLedger>('reward_xp_ledger')
+      .insertOne(ledgerEntry);
   }
 
   private normalizeToDayStart(baseDate: Date): Date {
@@ -357,7 +414,9 @@ export class RewardsService {
   }
 
   private diffInDays(startDate: Date, endDate: Date): number {
-    return Math.floor((endDate.getTime() - startDate.getTime()) / (24 * 60 * 60 * 1000));
+    return Math.floor(
+      (endDate.getTime() - startDate.getTime()) / (24 * 60 * 60 * 1000),
+    );
   }
 
   private countRequiredDaysBetween(startDate: Date, endDate: Date): number {
@@ -404,7 +463,11 @@ export class RewardsService {
     return weekStart;
   }
 
-  private async hasCompletedSevenDayWeek(userId: ObjectId, boxId: ObjectId, activityDay: Date): Promise<boolean> {
+  private async hasCompletedSevenDayWeek(
+    userId: ObjectId,
+    boxId: ObjectId,
+    activityDay: Date,
+  ): Promise<boolean> {
     const weekStart = this.getWeekStartMonday(activityDay);
     const weekEnd = new Date(activityDay);
     weekEnd.setHours(23, 59, 59, 999);
@@ -419,7 +482,9 @@ export class RewardsService {
       .toArray();
 
     const trainedDays = new Set(
-      checkins.map((checkin) => this.normalizeToDayStart(checkin.createdAt).toISOString()),
+      checkins.map((checkin) =>
+        this.normalizeToDayStart(checkin.createdAt).toISOString(),
+      ),
     );
 
     for (let offset = 0; offset < 7; offset += 1) {
@@ -433,7 +498,10 @@ export class RewardsService {
     return true;
   }
 
-  private resolveFullWeekFreezeBonus(hasCompletedFullWeek: boolean, unlockedMilestones: number[]): number {
+  private resolveFullWeekFreezeBonus(
+    hasCompletedFullWeek: boolean,
+    unlockedMilestones: number[],
+  ): number {
     if (!hasCompletedFullWeek) {
       return 0;
     }
@@ -445,7 +513,10 @@ export class RewardsService {
     return FULL_WEEK_BONUS_FREEZE;
   }
 
-  private getStreakState(missedRequiredDays: number, availableFreezes: number): RewardStreakState {
+  private getStreakState(
+    missedRequiredDays: number,
+    availableFreezes: number,
+  ): RewardStreakState {
     if (missedRequiredDays === 0) {
       return RewardStreakState.ACTIVE;
     }

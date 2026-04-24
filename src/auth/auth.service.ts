@@ -20,7 +20,10 @@ export class AuthService {
   }
 
   async login(loginDto: LoginDto) {
-    const user = await this.usersService.validateCredentials(loginDto.email, loginDto.password);
+    const user = await this.usersService.validateCredentials(
+      loginDto.email,
+      loginDto.password,
+    );
 
     return this.createSession(user);
   }

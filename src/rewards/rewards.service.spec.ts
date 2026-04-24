@@ -3,7 +3,11 @@ import { CheckinActivityStatus, RewardStreakState } from '../common/enums';
 import { RewardsService } from './rewards.service';
 
 function matchesQueryValue(itemValue: unknown, queryValue: unknown): boolean {
-  if (queryValue && typeof queryValue === 'object' && 'toHexString' in (queryValue as Record<string, unknown>)) {
+  if (
+    queryValue &&
+    typeof queryValue === 'object' &&
+    'toHexString' in (queryValue as Record<string, unknown>)
+  ) {
     return (
       !!itemValue &&
       typeof itemValue === 'object' &&
@@ -13,13 +17,24 @@ function matchesQueryValue(itemValue: unknown, queryValue: unknown): boolean {
     );
   }
 
-  if (queryValue && typeof queryValue === 'object' && !Array.isArray(queryValue)) {
+  if (
+    queryValue &&
+    typeof queryValue === 'object' &&
+    !Array.isArray(queryValue)
+  ) {
     const operatorObject = queryValue as Record<string, unknown>;
 
     if ('$gte' in operatorObject || '$lte' in operatorObject) {
-      const itemDate = itemValue instanceof Date ? itemValue.getTime() : Number.NaN;
-      const gteTime = operatorObject.$gte instanceof Date ? operatorObject.$gte.getTime() : Number.NEGATIVE_INFINITY;
-      const lteTime = operatorObject.$lte instanceof Date ? operatorObject.$lte.getTime() : Number.POSITIVE_INFINITY;
+      const itemDate =
+        itemValue instanceof Date ? itemValue.getTime() : Number.NaN;
+      const gteTime =
+        operatorObject.$gte instanceof Date
+          ? operatorObject.$gte.getTime()
+          : Number.NEGATIVE_INFINITY;
+      const lteTime =
+        operatorObject.$lte instanceof Date
+          ? operatorObject.$lte.getTime()
+          : Number.POSITIVE_INFINITY;
       return itemDate >= gteTime && itemDate <= lteTime;
     }
   }
@@ -30,7 +45,10 @@ function matchesQueryValue(itemValue: unknown, queryValue: unknown): boolean {
 class MockCollection<T extends { _id?: { toHexString(): string } }> {
   constructor(private readonly store: T[]) {}
 
-  async findOne(query: Record<string, unknown>, options?: { sort?: { createdAt: 1 | -1 } }) {
+  async findOne(
+    query: Record<string, unknown>,
+    options?: { sort?: { createdAt: 1 | -1 } },
+  ) {
     const matches = this.store.filter((item) =>
       Object.entries(query).every(([key, value]) => {
         const itemValue = (item as Record<string, unknown>)[key];
@@ -45,20 +63,30 @@ class MockCollection<T extends { _id?: { toHexString(): string } }> {
     return (
       [...matches].sort((left, right) => {
         const direction = options.sort?.createdAt ?? 1;
-        const leftTime = new Date((left as Record<string, unknown>).createdAt as Date).getTime();
-        const rightTime = new Date((right as Record<string, unknown>).createdAt as Date).getTime();
+        const leftTime = new Date(
+          (left as Record<string, unknown>).createdAt as Date,
+        ).getTime();
+        const rightTime = new Date(
+          (right as Record<string, unknown>).createdAt as Date,
+        ).getTime();
         return (leftTime - rightTime) * direction;
       })[0] ?? null
     );
   }
 
   async insertOne(document: T) {
-    const inserted = { ...document, _id: createObjectId(String(this.store.length + 1)) } as T;
+    const inserted = {
+      ...document,
+      _id: createObjectId(String(this.store.length + 1)),
+    } as T;
     this.store.push(inserted);
     return { insertedId: inserted._id };
   }
 
-  async updateOne(query: Record<string, unknown>, update: { $set: Record<string, unknown> }) {
+  async updateOne(
+    query: Record<string, unknown>,
+    update: { $set: Record<string, unknown> },
+  ) {
     const match = await this.findOne(query);
     if (!match) {
       return { matchedCount: 0 };
@@ -80,8 +108,12 @@ class MockCollection<T extends { _id?: { toHexString(): string } }> {
       sort: ({ unlockedAt }: { unlockedAt: 1 | -1 }) => ({
         toArray: async () =>
           [...matches].sort((left, right) => {
-            const leftTime = new Date((left as Record<string, unknown>).unlockedAt as Date).getTime();
-            const rightTime = new Date((right as Record<string, unknown>).unlockedAt as Date).getTime();
+            const leftTime = new Date(
+              (left as Record<string, unknown>).unlockedAt as Date,
+            ).getTime();
+            const rightTime = new Date(
+              (right as Record<string, unknown>).unlockedAt as Date,
+            ).getTime();
             return (leftTime - rightTime) * unlockedAt;
           }),
       }),
@@ -90,7 +122,8 @@ class MockCollection<T extends { _id?: { toHexString(): string } }> {
   }
 }
 
-const createObjectId = (value: string) => new ObjectId(value.padStart(24, '0').slice(-24));
+const createObjectId = (value: string) =>
+  new ObjectId(value.padStart(24, '0').slice(-24));
 
 describe('RewardsService', () => {
   const rewardStreaks: Array<Record<string, unknown>> = [];
@@ -222,7 +255,10 @@ describe('RewardsService', () => {
         new Date('2026-04-03T10:00:00.000Z'),
       );
 
-      const summary = await service.getMySummary('67ea76a5ac5d89c8bb9d2111', '67ea76a5ac5d89c8bb9d2222');
+      const summary = await service.getMySummary(
+        '67ea76a5ac5d89c8bb9d2111',
+        '67ea76a5ac5d89c8bb9d2222',
+      );
 
       expect(summary.streakState).toBe(RewardStreakState.ACTIVE);
     } finally {
@@ -284,7 +320,11 @@ describe('RewardsService', () => {
     });
 
     for (let index = 0; index < weekDates.length - 1; index += 1) {
-      await service.recordCheckinActivity(userId.toHexString(), boxId.toHexString(), new Date(weekDates[index]));
+      await service.recordCheckinActivity(
+        userId.toHexString(),
+        boxId.toHexString(),
+        new Date(weekDates[index]),
+      );
     }
 
     const sundayResult = await service.recordCheckinActivity(
@@ -321,7 +361,11 @@ describe('RewardsService', () => {
     });
 
     for (let index = 0; index < weekDates.length - 1; index += 1) {
-      await service.recordCheckinActivity(userId.toHexString(), boxId.toHexString(), new Date(weekDates[index]));
+      await service.recordCheckinActivity(
+        userId.toHexString(),
+        boxId.toHexString(),
+        new Date(weekDates[index]),
+      );
     }
 
     const sundayResult = await service.recordCheckinActivity(

@@ -11,7 +11,10 @@ export class AuthController {
 
   @Post('/user/register')
   @ApiOperation({ summary: 'Cadastro independente de aluno' })
-  @ApiResponse({ status: 201, description: 'Usuario cadastrado e JWT retornado com sucesso' })
+  @ApiResponse({
+    status: 201,
+    description: 'Usuario cadastrado e JWT retornado com sucesso',
+  })
   @ApiResponse({ status: 409, description: 'Ja existe usuario com este email' })
   async register(@Body() registerUserDto: RegisterUserDto) {
     return this.authService.register(registerUserDto);
@@ -19,7 +22,10 @@ export class AuthController {
 
   @Post('login')
   @ApiOperation({ summary: 'Login de usuario' })
-  @ApiResponse({ status: 201, description: 'JWT de identidade retornado com sucesso' })
+  @ApiResponse({
+    status: 201,
+    description: 'JWT de identidade retornado com sucesso',
+  })
   @ApiResponse({ status: 401, description: 'Credenciais invalidas' })
   async login(@Body() loginDto: LoginDto) {
     return this.authService.login(loginDto);

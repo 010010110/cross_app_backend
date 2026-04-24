@@ -25,7 +25,9 @@ export class ExercisesService {
     });
 
     if (existing) {
-      throw new ConflictException('Ja existe um exercicio com este nome neste box');
+      throw new ConflictException(
+        'Ja existe um exercicio com este nome neste box',
+      );
     }
 
     const exercise: Exercise = {
@@ -36,7 +38,9 @@ export class ExercisesService {
       createdAt: new Date(),
     };
 
-    const result = await this.db.collection<Exercise>('exercises').insertOne(exercise);
+    const result = await this.db
+      .collection<Exercise>('exercises')
+      .insertOne(exercise);
 
     return result.insertedId;
   }

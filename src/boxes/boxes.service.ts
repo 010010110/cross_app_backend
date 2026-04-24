@@ -1,4 +1,9 @@
-import { BadRequestException, ForbiddenException, Inject, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Inject,
+  Injectable,
+} from '@nestjs/common';
 import { Db, ObjectId } from 'mongodb';
 import { AuthService } from '../auth/auth.service';
 import { Box } from '../common/interfaces/box.interface';
@@ -59,7 +64,9 @@ export class BoxesService {
       createdAt: new Date(),
     };
 
-    const boxInsertResult = await this.db.collection<Box>('boxes').insertOne(box);
+    const boxInsertResult = await this.db
+      .collection<Box>('boxes')
+      .insertOne(box);
 
     let adminId: ObjectId;
     let linkedExistingAdmin: boolean;
@@ -109,9 +116,7 @@ export class BoxesService {
   }
 
   async findNearbyByLocation(userId: string, query: FindNearbyBoxesDto) {
-    const [user] = await Promise.all([
-      this.usersService.findById(userId),
-    ]);
+    const [user] = await Promise.all([this.usersService.findById(userId)]);
 
     const radius = query.radius || 5000;
     const [longitude, latitude] = [query.longitude, query.latitude];
@@ -158,7 +163,10 @@ export class BoxesService {
     }));
   }
 
-  async validateUserBoxMembership(userId: string, boxId: string): Promise<void> {
+  async validateUserBoxMembership(
+    userId: string,
+    boxId: string,
+  ): Promise<void> {
     if (!ObjectId.isValid(userId) || !ObjectId.isValid(boxId)) {
       throw new BadRequestException('IDs invalidos');
     }
@@ -174,7 +182,9 @@ export class BoxesService {
       throw new ForbiddenException('Usuario nao encontrado');
     }
 
-    const hasMembership = user.boxIds.some((id: ObjectId) => id.equals(boxObjectId));
+    const hasMembership = user.boxIds.some((id: ObjectId) =>
+      id.equals(boxObjectId),
+    );
 
     if (!hasMembership) {
       throw new ForbiddenException('Box nao pertence ao usuario');

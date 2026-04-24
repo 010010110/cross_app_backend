@@ -61,7 +61,8 @@ export class RegisterBoxDto {
     description: 'Telefone de contato principal do box (com DDI +55)',
   })
   @Matches(/^\+?[0-9]{10,15}$/, {
-    message: 'contactPhone deve conter entre 10 e 15 digitos e pode iniciar com +',
+    message:
+      'contactPhone deve conter entre 10 e 15 digitos e pode iniciar com +',
   })
   contactPhone: string;
 
@@ -77,7 +78,8 @@ export class RegisterBoxDto {
     description: 'WhatsApp oficial do box (com DDI +55)',
   })
   @Matches(/^\+?[0-9]{10,15}$/, {
-    message: 'contactWhatsapp deve conter entre 10 e 15 digitos e pode iniciar com +',
+    message:
+      'contactWhatsapp deve conter entre 10 e 15 digitos e pode iniciar com +',
   })
   contactWhatsapp: string;
 
@@ -108,16 +110,25 @@ export class RegisterBoxDto {
   @Length(10, 240)
   address: string;
 
-  @ApiProperty({ example: 'Ana Admin', description: 'Nome do administrador inicial' })
+  @ApiProperty({
+    example: 'Ana Admin',
+    description: 'Nome do administrador inicial',
+  })
   @IsString()
   @Length(2, 120)
   adminName: string;
 
-  @ApiProperty({ example: 'admin@box.com', description: 'Email do administrador inicial' })
+  @ApiProperty({
+    example: 'admin@box.com',
+    description: 'Email do administrador inicial',
+  })
   @IsEmail()
   adminEmail: string;
 
-  @ApiProperty({ example: 'Senha@123', description: 'Senha do administrador inicial' })
+  @ApiProperty({
+    example: 'Senha@123',
+    description: 'Senha do administrador inicial',
+  })
   @IsString()
   @MinLength(8)
   adminPassword: string;

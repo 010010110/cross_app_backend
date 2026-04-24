@@ -22,7 +22,11 @@ interface AuthenticatedRequest extends Request {
 
 @ApiTags('Exercises')
 @ApiBearerAuth()
-@ApiHeader({ name: 'x-box-id', description: 'ID do box selecionado', required: true })
+@ApiHeader({
+  name: 'x-box-id',
+  description: 'ID do box selecionado',
+  required: true,
+})
 @UseGuards(JwtAuthGuard, BoxContextGuard)
 @Controller('exercises')
 export class ExercisesController {
@@ -34,8 +38,14 @@ export class ExercisesController {
     description:
       'Retorna todos os exercicios globais da plataforma (isGlobal: true) mais os exercicios customizados do box do usuario autenticado.',
   })
-  @ApiResponse({ status: 200, description: 'Lista de exercicios retornada com sucesso' })
-  @ApiResponse({ status: 401, description: 'Token ausente, invalido ou expirado' })
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de exercicios retornada com sucesso',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Token ausente, invalido ou expirado',
+  })
   async findAll(@Req() request: AuthenticatedRequest) {
     return this.exercisesService.findAllForBox(request.user.boxId!);
   }
@@ -49,9 +59,18 @@ export class ExercisesController {
       'Insere um novo exercicio vinculado ao box do Admin autenticado. Acesso restrito a ADMIN.',
   })
   @ApiResponse({ status: 201, description: 'Exercicio criado com sucesso' })
-  @ApiResponse({ status: 401, description: 'Token ausente, invalido ou expirado' })
-  @ApiResponse({ status: 403, description: 'Perfil sem permissao para criar exercicio' })
-  @ApiResponse({ status: 409, description: 'Exercicio com este nome ja existe neste box' })
+  @ApiResponse({
+    status: 401,
+    description: 'Token ausente, invalido ou expirado',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Perfil sem permissao para criar exercicio',
+  })
+  @ApiResponse({
+    status: 409,
+    description: 'Exercicio com este nome ja existe neste box',
+  })
   @ApiResponse({ status: 400, description: 'Dados invalidos' })
   async create(
     @Req() request: AuthenticatedRequest,

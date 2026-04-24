@@ -1,5 +1,18 @@
-import { Body, Controller, Get, Post, Query, Req, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  Body,
+  Controller,
+  Get,
+  Post,
+  Query,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { Request } from 'express';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { JwtPayload } from '../common/interfaces/jwt-payload.interface';
@@ -22,7 +35,10 @@ export class BoxesController {
     description:
       'Cria um novo Box (ou filial via parentBoxId), cria ou vincula o ADMIN informado e ja retorna o JWT da sessao autenticada para o novo box.',
   })
-  @ApiResponse({ status: 201, description: 'Box cadastrado com sucesso e JWT retornado automaticamente' })
+  @ApiResponse({
+    status: 201,
+    description: 'Box cadastrado com sucesso e JWT retornado automaticamente',
+  })
   @ApiResponse({ status: 400, description: 'Dados invalidos ou duplicados' })
   async register(@Body() registerBoxDto: RegisterBoxDto) {
     return this.boxesService.register(registerBoxDto);
@@ -31,10 +47,22 @@ export class BoxesController {
   @Get('nearby')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
-  @ApiOperation({ summary: 'Lista academias proximas com base na latitude e longitude do usuario' })
-  @ApiResponse({ status: 200, description: 'Lista de academias proximas retornada com sucesso' })
-  @ApiResponse({ status: 401, description: 'Token ausente, invalido ou expirado' })
-  async findNearby(@Req() request: AuthenticatedRequest, @Query() query: FindNearbyBoxesDto) {
+  @ApiOperation({
+    summary:
+      'Lista academias proximas com base na latitude e longitude do usuario',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de academias proximas retornada com sucesso',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Token ausente, invalido ou expirado',
+  })
+  async findNearby(
+    @Req() request: AuthenticatedRequest,
+    @Query() query: FindNearbyBoxesDto,
+  ) {
     return this.boxesService.findNearbyByLocation(request.user.sub, query);
   }
 
@@ -42,8 +70,14 @@ export class BoxesController {
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Lista os boxes do usuario autenticado' })
-  @ApiResponse({ status: 200, description: 'Lista de boxes retornada com sucesso' })
-  @ApiResponse({ status: 401, description: 'Token ausente, invalido ou expirado' })
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de boxes retornada com sucesso',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Token ausente, invalido ou expirado',
+  })
   async findMine(@Req() request: AuthenticatedRequest) {
     return this.boxesService.findMineByUserId(request.user.sub);
   }

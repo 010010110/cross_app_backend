@@ -23,7 +23,9 @@ export class WodsService {
     });
 
     if (existing) {
-      throw new ConflictException('Ja existe um WOD cadastrado para esta data neste box');
+      throw new ConflictException(
+        'Ja existe um WOD cadastrado para esta data neste box',
+      );
     }
 
     const wod: Wod = {
@@ -43,7 +45,9 @@ export class WodsService {
   async findTodayByBox(boxId: string): Promise<Wod | null> {
     const today = new Date();
     const { start, end } = this.getDayRange(today);
-    const legacyUtcMidnight = this.parseIsoDateAsUtcMidnight(this.formatDateToIsoDay(today));
+    const legacyUtcMidnight = this.parseIsoDateAsUtcMidnight(
+      this.formatDateToIsoDay(today),
+    );
 
     return this.db.collection<Wod>('wods').findOne({
       boxId: new ObjectId(boxId),
@@ -86,8 +90,14 @@ export class WodsService {
     return `${year}-${month}-${day}`;
   }
 
-  private inferWodModel(title: string, blocks: Wod['blocks']): WodModel | undefined {
-    const content = [title, ...blocks.flatMap((block) => [block.title, block.content])]
+  private inferWodModel(
+    title: string,
+    blocks: Wod['blocks'],
+  ): WodModel | undefined {
+    const content = [
+      title,
+      ...blocks.flatMap((block) => [block.title, block.content]),
+    ]
       .join(' ')
       .toUpperCase();
 

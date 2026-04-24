@@ -22,7 +22,11 @@ interface AuthenticatedRequest extends Request {
 
 @ApiTags('Wods')
 @ApiBearerAuth()
-@ApiHeader({ name: 'x-box-id', description: 'ID do box selecionado', required: true })
+@ApiHeader({
+  name: 'x-box-id',
+  description: 'ID do box selecionado',
+  required: true,
+})
 @UseGuards(JwtAuthGuard, BoxContextGuard)
 @Controller('wods')
 export class WodsController {
@@ -38,11 +42,26 @@ export class WodsController {
   })
   @ApiResponse({ status: 201, description: 'WOD criado com sucesso' })
   @ApiResponse({ status: 400, description: 'Dados invalidos' })
-  @ApiResponse({ status: 401, description: 'Token ausente, invalido ou expirado' })
-  @ApiResponse({ status: 403, description: 'Perfil sem permissao para criar WOD' })
-  @ApiResponse({ status: 409, description: 'Ja existe WOD para a data informada neste box' })
-  async create(@Req() request: AuthenticatedRequest, @Body() createWodDto: CreateWodDto) {
-    const wodId = await this.wodsService.createForBox(request.user.boxId!, createWodDto);
+  @ApiResponse({
+    status: 401,
+    description: 'Token ausente, invalido ou expirado',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Perfil sem permissao para criar WOD',
+  })
+  @ApiResponse({
+    status: 409,
+    description: 'Ja existe WOD para a data informada neste box',
+  })
+  async create(
+    @Req() request: AuthenticatedRequest,
+    @Body() createWodDto: CreateWodDto,
+  ) {
+    const wodId = await this.wodsService.createForBox(
+      request.user.boxId!,
+      createWodDto,
+    );
 
     return { wodId, boxId: request.user.boxId! };
   }
@@ -53,8 +72,14 @@ export class WodsController {
     description:
       'Retorna o treino da data atual associado ao boxId presente no token JWT, para exibicao no app do aluno.',
   })
-  @ApiResponse({ status: 200, description: 'WOD de hoje retornado com sucesso' })
-  @ApiResponse({ status: 401, description: 'Token ausente, invalido ou expirado' })
+  @ApiResponse({
+    status: 200,
+    description: 'WOD de hoje retornado com sucesso',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Token ausente, invalido ou expirado',
+  })
   async findToday(@Req() request: AuthenticatedRequest) {
     return this.wodsService.findTodayByBox(request.user.boxId!);
   }

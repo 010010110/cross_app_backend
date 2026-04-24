@@ -10,7 +10,10 @@ export class FindNearbyBoxesDto {
   @Max(90)
   latitude: number;
 
-  @ApiProperty({ example: -46.65284, description: 'Longitude atual do usuario' })
+  @ApiProperty({
+    example: -46.65284,
+    description: 'Longitude atual do usuario',
+  })
   @Type(() => Number)
   @IsNumber()
   @Min(-180)

@@ -43,7 +43,10 @@ export class CreateWodDto {
   @IsDateString()
   date: string;
 
-  @ApiProperty({ example: 'WOD de Terça', description: 'Titulo principal do treino' })
+  @ApiProperty({
+    example: 'WOD de Terça',
+    description: 'Titulo principal do treino',
+  })
   @IsString()
   @Length(2, 120)
   title: string;

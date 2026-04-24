@@ -1,4 +1,9 @@
-import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Db, ObjectId } from 'mongodb';
 import { MONGO_CLIENT } from '../database/database.constants';
 import { AutoPrPostStatus, ResultScoreKind, WodModel } from '../common/enums';
@@ -40,7 +45,9 @@ export class ResultsService {
       createdAt: new Date(),
     };
 
-    const insertResult = await this.db.collection<Result>('results').insertOne(result);
+    const insertResult = await this.db
+      .collection<Result>('results')
+      .insertOne(result);
 
     return {
       resultId: insertResult.insertedId,
@@ -49,9 +56,19 @@ export class ResultsService {
     };
   }
 
-  async createPrByExercise(userId: string, userBoxIds: string[], dto: CreateExercisePrDto) {
-    const exercise = await this.ensureExerciseExistsForUser(dto.exerciseId, userBoxIds);
-    const resolvedBoxId = this.resolveResultBoxIdForExercise(userBoxIds, exercise.boxId);
+  async createPrByExercise(
+    userId: string,
+    userBoxIds: string[],
+    dto: CreateExercisePrDto,
+  ) {
+    const exercise = await this.ensureExerciseExistsForUser(
+      dto.exerciseId,
+      userBoxIds,
+    );
+    const resolvedBoxId = this.resolveResultBoxIdForExercise(
+      userBoxIds,
+      exercise.boxId,
+    );
 
     const currentParsedScore = this.parseScore(dto.score);
 
@@ -75,7 +92,9 @@ export class ResultsService {
       createdAt: new Date(),
     };
 
-    const insertResult = await this.db.collection<Result>('results').insertOne(result);
+    const insertResult = await this.db
+      .collection<Result>('results')
+      .insertOne(result);
     const autoFeedPost = await this.tryCreateAutoPostForNewPr({
       userId,
       boxId: resolvedBoxId.toHexString(),
@@ -136,7 +155,9 @@ export class ResultsService {
             scoreKind: 1,
             createdAt: 1,
             wodModel: 1,
-            exerciseName: { $ifNull: [{ $arrayElemAt: ['$exercise.name', 0] }, null] },
+            exerciseName: {
+              $ifNull: [{ $arrayElemAt: ['$exercise.name', 0] }, null],
+            },
             wodTitle: { $ifNull: [{ $arrayElemAt: ['$wod.title', 0] }, null] },
             wodDate: { $ifNull: [{ $arrayElemAt: ['$wod.date', 0] }, null] },
           },
@@ -187,8 +208,15 @@ export class ResultsService {
             scoreKind: 1,
             isNewPR: 1,
             createdAt: 1,
-            wodModel: { $ifNull: ['$wodModel', { $ifNull: [{ $arrayElemAt: ['$wod.model', 0] }, null] }] },
-            exerciseName: { $ifNull: [{ $arrayElemAt: ['$exercise.name', 0] }, null] },
+            wodModel: {
+              $ifNull: [
+                '$wodModel',
+                { $ifNull: [{ $arrayElemAt: ['$wod.model', 0] }, null] },
+              ],
+            },
+            exerciseName: {
+              $ifNull: [{ $arrayElemAt: ['$exercise.name', 0] }, null],
+            },
             wodTitle: { $ifNull: [{ $arrayElemAt: ['$wod.title', 0] }, null] },
             wodDate: { $ifNull: [{ $arrayElemAt: ['$wod.date', 0] }, null] },
           },
@@ -197,7 +225,10 @@ export class ResultsService {
       .toArray();
   }
 
-  private async ensureWodExistsForUser(wodId: string, userBoxIds: string[]): Promise<Wod> {
+  private async ensureWodExistsForUser(
+    wodId: string,
+    userBoxIds: string[],
+  ): Promise<Wod> {
     const normalizedUserBoxIds = userBoxIds
       .filter((id) => ObjectId.isValid(id))
       .map((id) => new ObjectId(id));
@@ -225,8 +256,16 @@ export class ResultsService {
     const isTime = this.parseTimeToSeconds(normalizedScore) !== null;
     const isReps = this.parseRepsScore(normalizedScore) !== null;
 
-    const repsOnlyModels: WodModel[] = [WodModel.AMRAP, WodModel.EMOM, WodModel.TABATA];
-    const timeOnlyModels: WodModel[] = [WodModel.FOR_TIME, WodModel.RFT, WodModel.CHIPPER];
+    const repsOnlyModels: WodModel[] = [
+      WodModel.AMRAP,
+      WodModel.EMOM,
+      WodModel.TABATA,
+    ];
+    const timeOnlyModels: WodModel[] = [
+      WodModel.FOR_TIME,
+      WodModel.RFT,
+      WodModel.CHIPPER,
+    ];
     const repsOrTimeModels: WodModel[] = [WodModel.LADDER, WodModel.INTERVALS];
 
     if (!mode) {
@@ -268,7 +307,8 @@ export class ResultsService {
     if (/\bFOR\s*TIME\b|\bFORTIME\b/.test(mergedText)) return WodModel.FOR_TIME;
     if (/\bEMOM\b/.test(mergedText)) return WodModel.EMOM;
     if (/\bTABATA\b/.test(mergedText)) return WodModel.TABATA;
-    if (/\bRFT\b|\bROUNDS?\s+FOR\s+TIME\b/.test(mergedText)) return WodModel.RFT;
+    if (/\bRFT\b|\bROUNDS?\s+FOR\s+TIME\b/.test(mergedText))
+      return WodModel.RFT;
     if (/\bCHIPPER\b/.test(mergedText)) return WodModel.CHIPPER;
     if (/\bLADDER\b/.test(mergedText)) return WodModel.LADDER;
     if (/\bINTERVALS?\b/.test(mergedText)) return WodModel.INTERVALS;
@@ -276,7 +316,10 @@ export class ResultsService {
     return null;
   }
 
-  private async ensureExerciseExistsForUser(exerciseId: string, userBoxIds: string[]): Promise<Exercise> {
+  private async ensureExerciseExistsForUser(
+    exerciseId: string,
+    userBoxIds: string[],
+  ): Promise<Exercise> {
     const normalizedUserBoxIds = userBoxIds
       .filter((id) => ObjectId.isValid(id))
       .map((id) => new ObjectId(id));
@@ -295,7 +338,10 @@ export class ResultsService {
     return exercise;
   }
 
-  private resolveResultBoxIdForExercise(userBoxIds: string[], exerciseBoxId?: ObjectId): ObjectId {
+  private resolveResultBoxIdForExercise(
+    userBoxIds: string[],
+    exerciseBoxId?: ObjectId,
+  ): ObjectId {
     if (exerciseBoxId) {
       return exerciseBoxId;
     }
@@ -303,7 +349,9 @@ export class ResultsService {
     const fallbackUserBoxId = userBoxIds.find((id) => ObjectId.isValid(id));
 
     if (!fallbackUserBoxId) {
-      throw new BadRequestException('Nao foi possivel determinar box de contexto para este resultado');
+      throw new BadRequestException(
+        'Nao foi possivel determinar box de contexto para este resultado',
+      );
     }
 
     return new ObjectId(fallbackUserBoxId);
@@ -336,7 +384,11 @@ export class ResultsService {
     });
   }
 
-  private resolveAutoPostText(customText: string | undefined, exerciseName: string, score: string): string {
+  private resolveAutoPostText(
+    customText: string | undefined,
+    exerciseName: string,
+    score: string,
+  ): string {
     if (customText && customText.trim().length > 0) {
       return customText.trim();
     }
@@ -344,7 +396,10 @@ export class ResultsService {
     return `Novo PR no ${exerciseName}: ${score}`;
   }
 
-  private isNewPersonalRecord(currentScore: ParsedScore | null, history: Result[]): boolean {
+  private isNewPersonalRecord(
+    currentScore: ParsedScore | null,
+    history: Result[],
+  ): boolean {
     if (history.length === 0) {
       return true;
     }
@@ -355,7 +410,10 @@ export class ResultsService {
 
     const previousComparableScores = history
       .map((item) => this.parseScore(item.score))
-      .filter((item): item is ParsedScore => !!item && item.kind === currentScore.kind)
+      .filter(
+        (item): item is ParsedScore =>
+          !!item && item.kind === currentScore.kind,
+      )
       .map((item) => item.value);
 
     if (previousComparableScores.length === 0) {

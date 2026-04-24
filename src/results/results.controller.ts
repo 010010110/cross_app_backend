@@ -40,8 +40,14 @@ export class ResultsController {
   @UseGuards(RolesGuard)
   @Roles(UserRole.ALUNO)
   @ApiOperation({ summary: 'Lista resultados de WOD do aluno autenticado' })
-  @ApiResponse({ status: 200, description: 'Resultados retornados com sucesso' })
-  @ApiResponse({ status: 403, description: 'Perfil sem permissao para consultar resultados' })
+  @ApiResponse({
+    status: 200,
+    description: 'Resultados retornados com sucesso',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Perfil sem permissao para consultar resultados',
+  })
   async list(
     @Req() request: AuthenticatedRequest,
     @Query('limit', new DefaultValuePipe(50), ParseIntPipe) limit: number,
@@ -54,16 +60,28 @@ export class ResultsController {
   @Roles(UserRole.ALUNO)
   @ApiOperation({
     summary: 'Registra resultado de treino e identifica novo PR',
-    description:
-      'Salva o score final do WOD completo do aluno autenticado.',
+    description: 'Salva o score final do WOD completo do aluno autenticado.',
   })
   @ApiResponse({ status: 201, description: 'Resultado salvo com sucesso' })
   @ApiResponse({ status: 400, description: 'Dados invalidos' })
-  @ApiResponse({ status: 403, description: 'Perfil sem permissao para registrar resultado' })
+  @ApiResponse({
+    status: 403,
+    description: 'Perfil sem permissao para registrar resultado',
+  })
   @ApiResponse({ status: 404, description: 'WOD nao encontrado para o box' })
-  @ApiResponse({ status: 404, description: 'WOD nao encontrado para o usuario' })
-  async create(@Req() request: AuthenticatedRequest, @Body() createResultDto: CreateResultDto) {
-    return this.resultsService.create(request.user.sub, request.user.boxIds ?? [], createResultDto);
+  @ApiResponse({
+    status: 404,
+    description: 'WOD nao encontrado para o usuario',
+  })
+  async create(
+    @Req() request: AuthenticatedRequest,
+    @Body() createResultDto: CreateResultDto,
+  ) {
+    return this.resultsService.create(
+      request.user.sub,
+      request.user.boxIds ?? [],
+      createResultDto,
+    );
   }
 
   @Post('pr')
@@ -76,9 +94,18 @@ export class ResultsController {
   })
   @ApiResponse({ status: 201, description: 'PR salvo com sucesso' })
   @ApiResponse({ status: 400, description: 'Dados invalidos' })
-  @ApiResponse({ status: 403, description: 'Perfil sem permissao para registrar PR' })
-  @ApiResponse({ status: 404, description: 'Exercicio nao encontrado para o box' })
-  @ApiResponse({ status: 404, description: 'Exercicio nao encontrado para o usuario' })
+  @ApiResponse({
+    status: 403,
+    description: 'Perfil sem permissao para registrar PR',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Exercicio nao encontrado para o box',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Exercicio nao encontrado para o usuario',
+  })
   async createPrByExercise(
     @Req() request: AuthenticatedRequest,
     @Body() createExercisePrDto: CreateExercisePrDto,
@@ -95,7 +122,10 @@ export class ResultsController {
   @Roles(UserRole.ALUNO)
   @ApiOperation({ summary: 'Lista PRs do aluno autenticado' })
   @ApiResponse({ status: 200, description: 'PRs retornados com sucesso' })
-  @ApiResponse({ status: 403, description: 'Perfil sem permissao para consultar PRs' })
+  @ApiResponse({
+    status: 403,
+    description: 'Perfil sem permissao para consultar PRs',
+  })
   async listPrs(
     @Req() request: AuthenticatedRequest,
     @Query('limit', new DefaultValuePipe(50), ParseIntPipe) limit: number,
