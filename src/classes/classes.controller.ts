@@ -1,5 +1,11 @@
 import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiHeader, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiHeader,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { Request } from 'express';
 import { Roles } from '../common/decorators/roles.decorator';
 import { UserRole } from '../common/enums';
@@ -16,7 +22,11 @@ interface AuthenticatedRequest extends Request {
 
 @ApiTags('Classes')
 @ApiBearerAuth()
-@ApiHeader({ name: 'x-box-id', description: 'ID do box selecionado', required: true })
+@ApiHeader({
+  name: 'x-box-id',
+  description: 'ID do box selecionado',
+  required: true,
+})
 @UseGuards(JwtAuthGuard, BoxContextGuard)
 @Controller('classes')
 export class ClassesController {
@@ -28,13 +38,22 @@ export class ClassesController {
   @ApiOperation({
     summary: 'Cadastra aula recorrente do box',
     description:
-      'Permite ao ADMIN cadastrar a grade de aulas informando nome, dias da semana e faixa de horario.',
+      'Permite ao ADMIN cadastrar a grade de aulas informando nome, dias da semana, faixa de horario e limite opcional de check-ins por dia.',
   })
   @ApiResponse({ status: 201, description: 'Aula cadastrada com sucesso' })
   @ApiResponse({ status: 400, description: 'Dados invalidos da aula' })
-  @ApiResponse({ status: 403, description: 'Perfil sem permissao para cadastrar aula' })
-  async create(@Req() request: AuthenticatedRequest, @Body() createClassDto: CreateClassDto) {
-    const classId = await this.classesService.createForBox(request.user.boxId!, createClassDto);
+  @ApiResponse({
+    status: 403,
+    description: 'Perfil sem permissao para cadastrar aula',
+  })
+  async create(
+    @Req() request: AuthenticatedRequest,
+    @Body() createClassDto: CreateClassDto,
+  ) {
+    const classId = await this.classesService.createForBox(
+      request.user.boxId!,
+      createClassDto,
+    );
 
     return {
       classId,
@@ -49,7 +68,10 @@ export class ClassesController {
     description:
       'Retorna as aulas do dia da semana atual no box selecionado e o WOD diario associado a esse dia.',
   })
-  @ApiResponse({ status: 200, description: 'Aulas do dia retornadas com sucesso' })
+  @ApiResponse({
+    status: 200,
+    description: 'Aulas do dia retornadas com sucesso',
+  })
   async findToday(@Req() request: AuthenticatedRequest) {
     return this.classesService.findTodayByBox(request.user.boxId!);
   }

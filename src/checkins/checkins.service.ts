@@ -1,4 +1,10 @@
-import { ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Db, ObjectId } from 'mongodb';
 import { ClassesService } from '../classes/classes.service';
 import { Box } from '../common/interfaces/box.interface';
@@ -25,19 +31,27 @@ export class CheckinsService {
 
     const normalizedUserId = new ObjectId(userId);
     const normalizedBoxId = new ObjectId(boxId);
-    const user = await this.db.collection<User>('users').findOne({ _id: normalizedUserId });
+    const user = await this.db
+      .collection<User>('users')
+      .findOne({ _id: normalizedUserId });
 
     if (!user) {
       throw new NotFoundException('Usuario nao encontrado');
     }
 
-    if (!user.boxIds.some((registeredBoxId) => registeredBoxId.equals(normalizedBoxId))) {
+    if (
+      !user.boxIds.some((registeredBoxId) =>
+        registeredBoxId.equals(normalizedBoxId),
+      )
+    ) {
       throw new ForbiddenException(
         'Voce ainda nao esta cadastrado como aluno desta academia. Procure o administrador para concluir seu cadastro.',
       );
     }
 
-    const box = await this.db.collection<Box>('boxes').findOne({ _id: normalizedBoxId });
+    const box = await this.db
+      .collection<Box>('boxes')
+      .findOne({ _id: normalizedBoxId });
 
     if (!box) {
       throw new NotFoundException('Box nao encontrado');
@@ -53,13 +67,44 @@ export class CheckinsService {
     );
 
     if (distanceFromBoxInMeters > box.geofenceRadius) {
-      throw new ForbiddenException('Voce esta fora do raio permitido para check-in');
+      throw new ForbiddenException(
+        'Voce esta fora do raio permitido para check-in',
+      );
     }
 
-    const classSchedule = await this.classesService.findByIdInBox(boxId, dto.classId);
+    const classSchedule = await this.classesService.findByIdInBox(
+      boxId,
+      dto.classId,
+    );
 
-    if (!this.classesService.isNowInsideClassWindow(classSchedule)) {
-      throw new ForbiddenException('Check-in permitido apenas no horario da aula selecionada');
+    const { startOfDay, endOfDay } = this.resolveCurrentDayRange();
+    const userDailyCheckinsCount = await this.db
+      .collection<Checkin>('checkins')
+      .countDocuments({
+        userId: normalizedUserId,
+        createdAt: { $gte: startOfDay, $lte: endOfDay },
+      });
+
+    if (userDailyCheckinsCount > 0) {
+      throw new ForbiddenException(
+        'Usuario ja realizou check-in hoje. Apenas um check-in diario e permitido',
+      );
+    }
+
+    if (classSchedule.checkinLimit) {
+      const currentCheckinsCount = await this.db
+        .collection<Checkin>('checkins')
+        .countDocuments({
+          boxId: normalizedBoxId,
+          classId: new ObjectId(dto.classId),
+          createdAt: { $gte: startOfDay, $lte: endOfDay },
+        });
+
+      if (currentCheckinsCount >= classSchedule.checkinLimit) {
+        throw new ForbiddenException(
+          'Limite de check-ins desta aula atingido para hoje',
+        );
+      }
     }
 
     const checkin: Checkin = {
@@ -72,7 +117,9 @@ export class CheckinsService {
       createdAt: new Date(),
     };
 
-    const result = await this.db.collection<Checkin>('checkins').insertOne(checkin);
+    const result = await this.db
+      .collection<Checkin>('checkins')
+      .insertOne(checkin);
     const consistency = await this.rewardsService.recordCheckinActivity(
       userId,
       boxId,
@@ -89,10 +136,21 @@ export class CheckinsService {
         name: classSchedule.name,
         startTime: classSchedule.startTime,
         endTime: classSchedule.endTime,
+        checkinLimit: classSchedule.checkinLimit ?? null,
       },
       wod,
       message: 'Check-in realizado com sucesso',
     };
+  }
+
+  private resolveCurrentDayRange() {
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+
+    const endOfDay = new Date();
+    endOfDay.setHours(23, 59, 59, 999);
+
+    return { startOfDay, endOfDay };
   }
 
   async findByUser(userId: string) {
@@ -118,6 +176,53 @@ export class CheckinsService {
       })
       .sort({ createdAt: -1 })
       .toArray();
+  }
+
+  async deleteMyCheckin(userId: string, boxId: string, checkinId: string) {
+    if (!ObjectId.isValid(boxId)) {
+      throw new ForbiddenException('Header x-box-id ausente ou invalido');
+    }
+
+    if (!ObjectId.isValid(checkinId)) {
+      throw new BadRequestException('checkinId invalido');
+    }
+
+    const normalizedUserId = new ObjectId(userId);
+    const normalizedBoxId = new ObjectId(boxId);
+    const normalizedCheckinId = new ObjectId(checkinId);
+
+    const checkin = await this.db.collection<Checkin>('checkins').findOne({
+      _id: normalizedCheckinId,
+      userId: normalizedUserId,
+      boxId: normalizedBoxId,
+    });
+
+    if (!checkin) {
+      throw new NotFoundException('Check-in nao encontrado para este usuario no box selecionado');
+    }
+
+    const classSchedule = await this.classesService.findByIdInBox(
+      boxId,
+      checkin.classId.toHexString(),
+    );
+
+    const classStartDate = this.resolveClassStartDate(checkin.createdAt, classSchedule.startTime);
+    const deleteDeadline = new Date(classStartDate.getTime() - 60 * 60 * 1000);
+
+    if (new Date().getTime() > deleteDeadline.getTime()) {
+      throw new ForbiddenException('Cancelamento permitido somente ate 1 hora antes da aula');
+    }
+
+    await this.db.collection<Checkin>('checkins').deleteOne({
+      _id: normalizedCheckinId,
+      userId: normalizedUserId,
+      boxId: normalizedBoxId,
+    });
+
+    return {
+      checkinId: normalizedCheckinId,
+      message: 'Check-in removido com sucesso',
+    };
   }
 
   private calculateDistanceInMeters(
@@ -146,5 +251,12 @@ export class CheckinsService {
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
     return earthRadiusInMeters * c;
+  }
+
+  private resolveClassStartDate(baseDate: Date, startTime: string) {
+    const [hours, minutes] = startTime.split(':').map(Number);
+    const classStartDate = new Date(baseDate);
+    classStartDate.setHours(hours, minutes, 0, 0);
+    return classStartDate;
   }
 }

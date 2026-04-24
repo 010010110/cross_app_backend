@@ -3,9 +3,12 @@ import {
   ArrayMinSize,
   IsArray,
   IsEnum,
+  IsInt,
   IsMilitaryTime,
+  IsOptional,
   IsString,
   Length,
+  Min,
 } from 'class-validator';
 import { ClassWeekday } from '../../common/enums/class-weekday.enum';
 
@@ -42,4 +45,15 @@ export class CreateClassDto {
   })
   @IsMilitaryTime()
   endTime!: string;
+
+  @ApiProperty({
+    example: 20,
+    required: false,
+    description:
+      'Limite maximo de check-ins permitidos por aula no dia. Quando nao informado, nao ha limite.',
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  checkinLimit?: number;
 }

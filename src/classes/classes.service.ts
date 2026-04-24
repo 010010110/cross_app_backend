@@ -1,4 +1,9 @@
-import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Db, ObjectId } from 'mongodb';
 import { ClassWeekday } from '../common/enums/class-weekday.enum';
 import { MONGO_CLIENT } from '../database/database.constants';
@@ -22,10 +27,13 @@ export class ClassesService {
       weekDays: [...new Set(dto.weekDays)],
       startTime: dto.startTime,
       endTime: dto.endTime,
+      ...(dto.checkinLimit ? { checkinLimit: dto.checkinLimit } : {}),
       createdAt: new Date(),
     };
 
-    const result = await this.db.collection<ClassSchedule>('classes').insertOne(classSchedule);
+    const result = await this.db
+      .collection<ClassSchedule>('classes')
+      .insertOne(classSchedule);
 
     return result.insertedId;
   }
@@ -56,10 +64,12 @@ export class ClassesService {
       throw new BadRequestException('classId invalido');
     }
 
-    const classSchedule = await this.db.collection<ClassSchedule>('classes').findOne({
-      _id: new ObjectId(classId),
-      boxId: new ObjectId(boxId),
-    });
+    const classSchedule = await this.db
+      .collection<ClassSchedule>('classes')
+      .findOne({
+        _id: new ObjectId(classId),
+        boxId: new ObjectId(boxId),
+      });
 
     if (!classSchedule) {
       throw new NotFoundException('Aula nao encontrada para este box');
@@ -68,7 +78,10 @@ export class ClassesService {
     return classSchedule;
   }
 
-  isNowInsideClassWindow(classSchedule: ClassSchedule, now: Date = new Date()): boolean {
+  isNowInsideClassWindow(
+    classSchedule: ClassSchedule,
+    now: Date = new Date(),
+  ): boolean {
     const nowWeekday = this.getWeekdayFromDate(now);
 
     if (!classSchedule.weekDays.includes(nowWeekday)) {
@@ -87,7 +100,9 @@ export class ClassesService {
     const endMinutes = this.timeToMinutes(endTime);
 
     if (endMinutes <= startMinutes) {
-      throw new BadRequestException('Horario final deve ser maior que o horario inicial');
+      throw new BadRequestException(
+        'Horario final deve ser maior que o horario inicial',
+      );
     }
   }
 

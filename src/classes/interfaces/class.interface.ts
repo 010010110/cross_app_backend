@@ -8,5 +8,6 @@ export interface ClassSchedule {
   weekDays: ClassWeekday[];
   startTime: string;
   endTime: string;
+  checkinLimit?: number;
   createdAt: Date;
 }
