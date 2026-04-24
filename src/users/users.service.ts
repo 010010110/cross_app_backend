@@ -24,7 +24,8 @@ export class UsersService {
   constructor(@Inject(MONGO_CLIENT) private readonly db: Db) {}
 
   async findById(userId: ObjectId | string): Promise<User> {
-    const normalizedUserId = typeof userId === 'string' ? new ObjectId(userId) : userId;
+    const normalizedUserId =
+      typeof userId === 'string' ? new ObjectId(userId) : userId;
 
     const user = await this.db.collection<User>('users').findOne({
       _id: normalizedUserId,
@@ -51,10 +52,15 @@ export class UsersService {
 
     if (existingUser) {
       if (existingUser.role !== UserRole.ADMIN) {
-        throw new BadRequestException('Ja existe usuario com este email e role diferente de ADMIN');
+        throw new BadRequestException(
+          'Ja existe usuario com este email e role diferente de ADMIN',
+        );
       }
 
-      const isPasswordValid = await compare(params.password, existingUser.passwordHash);
+      const isPasswordValid = await compare(
+        params.password,
+        existingUser.passwordHash,
+      );
 
       if (!isPasswordValid) {
         throw new BadRequestException('Senha invalida para o ADMIN existente');
@@ -68,7 +74,7 @@ export class UsersService {
       );
 
       return {
-        adminId: existingUser._id!,
+        adminId: existingUser._id,
         linkedExistingAdmin: true,
       };
     }
@@ -94,7 +100,9 @@ export class UsersService {
 
   async registerStudent(dto: RegisterUserDto): Promise<User> {
     const normalizedEmail = dto.email.toLowerCase();
-    const existingUser = await this.db.collection<User>('users').findOne({ email: normalizedEmail });
+    const existingUser = await this.db
+      .collection<User>('users')
+      .findOne({ email: normalizedEmail });
 
     if (existingUser) {
       throw new ConflictException('Ja existe usuario com este email');
@@ -114,7 +122,9 @@ export class UsersService {
       createdAt: new Date(),
     };
 
-    const result = await this.db.collection<User>('users').insertOne(studentUser);
+    const result = await this.db
+      .collection<User>('users')
+      .insertOne(studentUser);
 
     return {
       ...studentUser,
@@ -126,21 +136,26 @@ export class UsersService {
     const user = await this.findById(userId);
 
     if (user.role !== UserRole.ALUNO) {
-      throw new BadRequestException('Apenas alunos podem gerar token de matricula');
+      throw new BadRequestException(
+        'Apenas alunos podem gerar token de matricula',
+      );
     }
 
     const now = new Date();
-    const activeToken = await this.db.collection<EnrollmentToken>('enrollment_tokens').findOne({
-      userId: user._id!,
-      usedAt: { $exists: false },
-      expiresAt: { $gt: now },
-    });
+    const activeToken = await this.db
+      .collection<EnrollmentToken>('enrollment_tokens')
+      .findOne({
+        userId: user._id!,
+        usedAt: { $exists: false },
+        expiresAt: { $gt: now },
+      });
 
     if (activeToken) {
       return {
         token: activeToken.token,
         expiresAt: activeToken.expiresAt,
-        message: 'Token ja ativo. Informe este codigo ao administrador do box antes de expirar.',
+        message:
+          'Token ja ativo. Informe este codigo ao administrador do box antes de expirar.',
       };
     }
 
@@ -149,19 +164,27 @@ export class UsersService {
       $or: [{ usedAt: { $exists: false } }, { expiresAt: { $lte: now } }],
     });
 
-    for (let attempt = 0; attempt < UsersService.ENROLLMENT_TOKEN_MAX_RETRIES; attempt++) {
+    for (
+      let attempt = 0;
+      attempt < UsersService.ENROLLMENT_TOKEN_MAX_RETRIES;
+      attempt++
+    ) {
       const token = this.generateNumericEnrollmentToken();
-      const collision = await this.db.collection<EnrollmentToken>('enrollment_tokens').findOne({
-        token,
-        usedAt: { $exists: false },
-        expiresAt: { $gt: now },
-      });
+      const collision = await this.db
+        .collection<EnrollmentToken>('enrollment_tokens')
+        .findOne({
+          token,
+          usedAt: { $exists: false },
+          expiresAt: { $gt: now },
+        });
 
       if (collision) {
         continue;
       }
 
-      const expiresAt = new Date(Date.now() + UsersService.ENROLLMENT_TOKEN_DURATION_IN_MS);
+      const expiresAt = new Date(
+        Date.now() + UsersService.ENROLLMENT_TOKEN_DURATION_IN_MS,
+      );
 
       await this.db.collection<EnrollmentToken>('enrollment_tokens').insertOne({
         userId: user._id!,
@@ -173,11 +196,14 @@ export class UsersService {
       return {
         token,
         expiresAt,
-        message: 'Token de 6 digitos gerado com sucesso. Informe este codigo ao administrador do box em ate 10 minutos.',
+        message:
+          'Token de 6 digitos gerado com sucesso. Informe este codigo ao administrador do box em ate 10 minutos.',
       };
     }
 
-    throw new ConflictException('Nao foi possivel gerar um token unico no momento. Tente novamente.');
+    throw new ConflictException(
+      'Nao foi possivel gerar um token unico no momento. Tente novamente.',
+    );
   }
 
   async enrollStudentWithToken(boxId: string, token: string) {
@@ -188,16 +214,20 @@ export class UsersService {
     const normalizedToken = token.trim();
 
     if (!/^\d{6}$/.test(normalizedToken)) {
-      throw new BadRequestException('Token de matricula deve ter 6 digitos numericos');
+      throw new BadRequestException(
+        'Token de matricula deve ter 6 digitos numericos',
+      );
     }
 
     const normalizedBoxId = new ObjectId(boxId);
     const now = new Date();
-    const enrollmentToken = await this.db.collection<EnrollmentToken>('enrollment_tokens').findOne({
-      token: normalizedToken,
-      usedAt: { $exists: false },
-      expiresAt: { $gt: now },
-    });
+    const enrollmentToken = await this.db
+      .collection<EnrollmentToken>('enrollment_tokens')
+      .findOne({
+        token: normalizedToken,
+        usedAt: { $exists: false },
+        expiresAt: { $gt: now },
+      });
 
     if (!enrollmentToken) {
       throw new BadRequestException('Token de matricula invalido ou expirado');
@@ -206,17 +236,25 @@ export class UsersService {
     const student = await this.findById(enrollmentToken.userId);
 
     if (student.role !== UserRole.ALUNO) {
-      throw new BadRequestException('Token informado nao pertence a um aluno valido');
+      throw new BadRequestException(
+        'Token informado nao pertence a um aluno valido',
+      );
     }
 
-    if (student.boxIds.some((studentBoxId) => studentBoxId.equals(normalizedBoxId))) {
+    if (
+      student.boxIds.some((studentBoxId) =>
+        studentBoxId.equals(normalizedBoxId),
+      )
+    ) {
       throw new ConflictException('Aluno ja matriculado neste box');
     }
 
-    await this.db.collection<User>('users').updateOne(
-      { _id: student._id },
-      { $addToSet: { boxIds: normalizedBoxId } },
-    );
+    await this.db
+      .collection<User>('users')
+      .updateOne(
+        { _id: student._id },
+        { $addToSet: { boxIds: normalizedBoxId } },
+      );
 
     await this.db.collection<EnrollmentToken>('enrollment_tokens').updateOne(
       { _id: enrollmentToken._id },
@@ -238,11 +276,24 @@ export class UsersService {
     };
   }
 
-  async findStudentsByBox(boxId: string): Promise<Omit<User, 'passwordHash'>[]> {
+  async findStudentsByBox(
+    boxId: string,
+  ): Promise<Omit<User, 'passwordHash'>[]> {
     return this.db
       .collection<User>('users')
       .find(
         { boxIds: new ObjectId(boxId), role: UserRole.ALUNO },
+        { projection: { passwordHash: 0 } },
+      )
+      .sort({ name: 1 })
+      .toArray() as Promise<Omit<User, 'passwordHash'>[]>;
+  }
+
+  async findCoachesByBox(boxId: string): Promise<Omit<User, 'passwordHash'>[]> {
+    return this.db
+      .collection<User>('users')
+      .find(
+        { boxIds: new ObjectId(boxId), role: UserRole.COACH },
         { projection: { passwordHash: 0 } },
       )
       .sort({ name: 1 })
@@ -267,7 +318,12 @@ export class UsersService {
     return user;
   }
 
-  toJwtSafeUser(user: User): { id: string; email: string; boxIds: string[]; role: UserRole } {
+  toJwtSafeUser(user: User): {
+    id: string;
+    email: string;
+    boxIds: string[];
+    role: UserRole;
+  } {
     return {
       id: user._id!.toHexString(),
       email: user.email,
@@ -278,6 +334,9 @@ export class UsersService {
 
   private generateNumericEnrollmentToken(): string {
     const max = 10 ** UsersService.ENROLLMENT_TOKEN_DIGITS;
-    return String(randomInt(0, max)).padStart(UsersService.ENROLLMENT_TOKEN_DIGITS, '0');
+    return String(randomInt(0, max)).padStart(
+      UsersService.ENROLLMENT_TOKEN_DIGITS,
+      '0',
+    );
   }
 }

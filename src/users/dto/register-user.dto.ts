@@ -1,5 +1,13 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsOptional, IsString, IsUrl, Length, Matches, MinLength } from 'class-validator';
+import {
+  IsEmail,
+  IsOptional,
+  IsString,
+  IsUrl,
+  Length,
+  Matches,
+  MinLength,
+} from 'class-validator';
 
 export class RegisterUserDto {
   @ApiProperty({ example: 'Joao Aluno', description: 'Nome do usuario' })
@@ -21,7 +29,8 @@ export class RegisterUserDto {
     description: 'Telefone de contato do aluno (com DDI +55)',
   })
   @Matches(/^\+?[0-9]{10,15}$/, {
-    message: 'contactPhone deve conter entre 10 e 15 digitos e pode iniciar com +',
+    message:
+      'contactPhone deve conter entre 10 e 15 digitos e pode iniciar com +',
   })
   contactPhone: string;
 

@@ -1,13 +1,21 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsMongoId, IsOptional, IsString, IsUrl, Length } from 'class-validator';
+import {
+  IsMongoId,
+  IsOptional,
+  IsString,
+  IsUrl,
+  Length,
+} from 'class-validator';
 
 export class CreateFeedPostDto {
   @ApiProperty({
+    required: false,
     description: 'ID do check-in usado para validar que o aluno fez a aula',
     example: '67ea76a5ac5d89c8bb9d2111',
   })
+  @IsOptional()
   @IsMongoId()
-  checkinId: string;
+  checkinId?: string;
 
   @ApiProperty({
     description: 'Texto do post',

@@ -62,7 +62,10 @@ const imageFileFilter = (
   callback: (error: Error | null, acceptFile: boolean) => void,
 ) => {
   if (!file.mimetype.startsWith('image/')) {
-    callback(new BadRequestException('Apenas arquivos de imagem sao permitidos'), false);
+    callback(
+      new BadRequestException('Apenas arquivos de imagem sao permitidos'),
+      false,
+    );
     return;
   }
 
@@ -87,14 +90,21 @@ export class FeedController {
     @Req() request: AuthenticatedRequest,
     @Query('limit', new DefaultValuePipe(50), ParseIntPipe) limit: number,
   ) {
-    return this.feedService.listFeedByUserBoxes(request.user.boxIds ?? [], limit);
+    return this.feedService.listFeedByUserBoxes(
+      request.user.boxIds ?? [],
+      limit,
+    );
   }
 
   @Post('upload')
   @UseGuards(BoxContextGuard)
   @UseGuards(RolesGuard)
-  @Roles(UserRole.ALUNO)
-  @ApiHeader({ name: 'x-box-id', description: 'ID do box selecionado', required: true })
+  @Roles(UserRole.ADMIN, UserRole.COACH, UserRole.ALUNO)
+  @ApiHeader({
+    name: 'x-box-id',
+    description: 'ID do box selecionado',
+    required: true,
+  })
   @UseInterceptors(
     FileInterceptor('image', {
       storage: multerStorage,
@@ -118,6 +128,7 @@ export class FeedController {
   })
   @ApiResponse({ status: 201, description: 'Upload realizado com sucesso' })
   @ApiResponse({ status: 400, description: 'Imagem invalida ou ausente' })
+  @ApiResponse({ status: 403, description: 'Perfil sem permissao para upload no feed' })
   async uploadImage(
     @Req() request: { protocol: string; get(name: string): string | undefined },
     @UploadedFile() file?: { filename: string },
@@ -138,18 +149,36 @@ export class FeedController {
   @Post('post')
   @UseGuards(BoxContextGuard)
   @UseGuards(RolesGuard)
-  @Roles(UserRole.ALUNO)
-  @ApiHeader({ name: 'x-box-id', description: 'ID do box selecionado', required: true })
+  @Roles(UserRole.ADMIN, UserRole.COACH, UserRole.ALUNO)
+  @ApiHeader({
+    name: 'x-box-id',
+    description: 'ID do box selecionado',
+    required: true,
+  })
   @ApiOperation({
     summary: 'Cria post no feed do box',
     description:
-      'Recebe texto + foto opcional e vincula o post a um check-in valido do aluno. Um check-in aceita somente um post.',
+      'Recebe texto + foto opcional. Para ALUNO, exige check-in valido do proprio usuario e cada check-in aceita somente um post. Para ADMIN/COACH, checkinId e opcional.',
   })
   @ApiResponse({ status: 201, description: 'Post criado com sucesso' })
-  @ApiResponse({ status: 400, description: 'Dados invalidos ou check-in nao encontrado' })
+  @ApiResponse({
+    status: 400,
+    description: 'Dados invalidos ou check-in nao encontrado',
+  })
   @ApiResponse({ status: 403, description: 'Perfil sem permissao para postar' })
-  @ApiResponse({ status: 409, description: 'Ja existe post para o check-in informado' })
-  async createPost(@Req() request: AuthenticatedRequest, @Body() createFeedPostDto: CreateFeedPostDto) {
-    return this.feedService.createPost(request.user.sub, request.user.boxId!, createFeedPostDto);
+  @ApiResponse({
+    status: 409,
+    description: 'Ja existe post para o check-in informado',
+  })
+  async createPost(
+    @Req() request: AuthenticatedRequest,
+    @Body() createFeedPostDto: CreateFeedPostDto,
+  ) {
+    return this.feedService.createPost(
+      request.user.sub,
+      request.user.boxId!,
+      request.user.role,
+      createFeedPostDto,
+    );
   }
 }

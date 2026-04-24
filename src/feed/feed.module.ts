@@ -4,9 +4,9 @@ import { FeedController } from './feed.controller';
 import { FeedService } from './feed.service';
 
 @Module({
-	imports: [BoxesModule],
-	controllers: [FeedController],
-	providers: [FeedService],
-	exports: [FeedService],
+  imports: [BoxesModule],
+  controllers: [FeedController],
+  providers: [FeedService],
+  exports: [FeedService],
 })
 export class FeedModule {}

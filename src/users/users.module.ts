@@ -6,9 +6,9 @@ import { UsersController } from './users.controller';
 import { UsersService } from './users.service';
 
 @Module({
-	imports: [forwardRef(() => BoxesModule)],
-	controllers: [UsersController],
-	providers: [UsersService, JwtAuthGuard, RolesGuard],
-	exports: [UsersService],
+  imports: [forwardRef(() => BoxesModule)],
+  controllers: [UsersController],
+  providers: [UsersService, JwtAuthGuard, RolesGuard],
+  exports: [UsersService],
 })
 export class UsersModule {}

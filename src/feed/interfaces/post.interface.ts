@@ -5,7 +5,7 @@ export interface Post {
   _id?: ObjectId;
   userId: ObjectId;
   boxId: ObjectId;
-  checkinId: ObjectId;
+  checkinId?: ObjectId;
   text: string;
   photoUrl?: string;
   source?: FeedPostSource;

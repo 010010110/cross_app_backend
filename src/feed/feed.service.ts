@@ -1,8 +1,14 @@
-import { BadRequestException, ConflictException, Inject, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Inject,
+  Injectable,
+} from '@nestjs/common';
 import { Db, ObjectId } from 'mongodb';
 import { MONGO_CLIENT } from '../database/database.constants';
 import { AutoPrPostStatus, FeedPostSource } from '../common/enums';
 import { Checkin } from '../checkins/interfaces/checkin.interface';
+import { UserRole } from '../common/types/user-role.type';
 import { CreateFeedPostDto } from './dto/create-feed-post.dto';
 import { Post } from './interfaces/post.interface';
 
@@ -66,7 +72,9 @@ export class FeedService {
             photoUrl: 1,
             source: 1,
             createdAt: 1,
-            authorName: { $ifNull: [{ $arrayElemAt: ['$author.name', 0] }, null] },
+            authorName: {
+              $ifNull: [{ $arrayElemAt: ['$author.name', 0] }, null],
+            },
             boxName: { $ifNull: [{ $arrayElemAt: ['$box.name', 0] }, null] },
           },
         },
@@ -74,27 +82,58 @@ export class FeedService {
       .toArray();
   }
 
-  async createPost(userId: string, boxId: string, dto: CreateFeedPostDto) {
+  async createPost(
+    userId: string,
+    boxId: string,
+    role: UserRole,
+    dto: CreateFeedPostDto,
+  ) {
     const normalizedUserId = new ObjectId(userId);
     const normalizedBoxId = new ObjectId(boxId);
-    const normalizedCheckinId = new ObjectId(dto.checkinId);
 
-    const checkin = await this.db.collection<Checkin>('checkins').findOne({
-      _id: normalizedCheckinId,
-      userId: normalizedUserId,
-      boxId: normalizedBoxId,
-    });
+    let normalizedCheckinId: ObjectId | undefined;
 
-    if (!checkin) {
-      throw new BadRequestException('Check-in nao encontrado para este usuario no box atual');
-    }
+    if (dto.checkinId) {
+      normalizedCheckinId = new ObjectId(dto.checkinId);
 
-    const existingPostForCheckin = await this.db.collection<Post>('posts').findOne({
-      checkinId: normalizedCheckinId,
-    });
+      const checkinQuery: {
+        _id: ObjectId;
+        boxId: ObjectId;
+        userId?: ObjectId;
+      } = {
+        _id: normalizedCheckinId,
+        boxId: normalizedBoxId,
+      };
 
-    if (existingPostForCheckin) {
-      throw new ConflictException('Ja existe um post para este check-in');
+      if (role === UserRole.ALUNO) {
+        checkinQuery.userId = normalizedUserId;
+      }
+
+      const checkin = await this.db.collection<Checkin>('checkins').findOne(
+        checkinQuery,
+      );
+
+      if (!checkin) {
+        throw new BadRequestException(
+          role === UserRole.ALUNO
+            ? 'Check-in nao encontrado para este usuario no box atual'
+            : 'Check-in nao encontrado no box atual',
+        );
+      }
+
+      const existingPostForCheckin = await this.db
+        .collection<Post>('posts')
+        .findOne({
+          checkinId: normalizedCheckinId,
+        });
+
+      if (existingPostForCheckin) {
+        throw new ConflictException('Ja existe um post para este check-in');
+      }
+    } else if (role === UserRole.ALUNO) {
+      throw new BadRequestException(
+        'checkinId e obrigatorio para post manual de aluno',
+      );
     }
 
     const post: Post = {
@@ -111,7 +150,7 @@ export class FeedService {
 
     return {
       postId: result.insertedId,
-      checkinId: normalizedCheckinId,
+      checkinId: normalizedCheckinId ?? null,
       message: 'Post criado com sucesso',
     };
   }
@@ -139,9 +178,11 @@ export class FeedService {
       return { status: AutoPrPostStatus.SKIPPED_NO_CHECKIN };
     }
 
-    const existingPostForCheckin = await this.db.collection<Post>('posts').findOne({
-      checkinId: latestCheckin._id,
-    });
+    const existingPostForCheckin = await this.db
+      .collection<Post>('posts')
+      .findOne({
+        checkinId: latestCheckin._id,
+      });
 
     if (existingPostForCheckin) {
       return {
@@ -160,7 +201,9 @@ export class FeedService {
       createdAt: new Date(),
     };
 
-    const insertPostResult = await this.db.collection<Post>('posts').insertOne(post);
+    const insertPostResult = await this.db
+      .collection<Post>('posts')
+      .insertOne(post);
 
     return {
       status: AutoPrPostStatus.CREATED,
