@@ -10,7 +10,7 @@
  * Variáveis de ambiente:
  *   MONGO_URI      (padrão: mongodb://localhost:27017)
  *   MONGO_DB_NAME  (padrão: cross_app)
- *   TARGET_USER_ID (padrão: 69cfcaf525b5b1b15149da50)
+ *   TARGET_USER_ID (padrão: 69eb56d518cbe50e76370a03)
  */
 
 require('dotenv/config');
@@ -18,7 +18,7 @@ const { MongoClient, ObjectId } = require('mongodb');
 
 const MONGO_URI = process.env.MONGO_URI ?? 'mongodb://localhost:27017';
 const MONGO_DB_NAME = process.env.MONGO_DB_NAME ?? 'cross_app';
-const TARGET_USER_ID = process.env.TARGET_USER_ID ?? '69cfcaf525b5b1b15149da50';
+const TARGET_USER_ID = process.env.TARGET_USER_ID ?? '69eb56d518cbe50e76370a03';
 
 // ---------------------------------------------------------------------------
 // Inferência de modelo de WOD (espelhada do results.service.ts)

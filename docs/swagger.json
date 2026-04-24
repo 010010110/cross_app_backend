@@ -16,6 +16,9 @@
       "name": "Auth"
     },
     {
+      "name": "Admin Reports"
+    },
+    {
       "name": "Boxes"
     },
     {
@@ -44,6 +47,628 @@
     }
   ],
   "paths": {
+    "/admin/reports/overview": {
+      "get": {
+        "tags": [
+          "Admin Reports"
+        ],
+        "summary": "Resumo geral do box no periodo (alunos, aulas, check-ins)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/XBoxIdHeader"
+          },
+          {
+            "name": "startDate",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "example": "2026-04-01"
+            }
+          },
+          {
+            "name": "endDate",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "example": "2026-04-30"
+            }
+          },
+          {
+            "name": "coachId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/ObjectId"
+            }
+          },
+          {
+            "name": "studentId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/ObjectId"
+            }
+          },
+          {
+            "name": "classId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/ObjectId"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Resumo retornado com sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token ausente, invalido ou expirado"
+          },
+          "403": {
+            "description": "Perfil sem permissao para consultar relatorios"
+          }
+        }
+      }
+    },
+    "/admin/reports/inactivity": {
+      "get": {
+        "tags": [
+          "Admin Reports"
+        ],
+        "summary": "Lista alunos inativos acima do threshold de dias sem treino",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/XBoxIdHeader"
+          },
+          {
+            "name": "thresholdDays",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "example": 7
+            }
+          },
+          {
+            "name": "coachId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/ObjectId"
+            }
+          },
+          {
+            "name": "studentId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/ObjectId"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Relatorio de inatividade retornado com sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token ausente, invalido ou expirado"
+          },
+          "403": {
+            "description": "Perfil sem permissao para consultar relatorios"
+          }
+        }
+      }
+    },
+    "/admin/reports/class-participation": {
+      "get": {
+        "tags": [
+          "Admin Reports"
+        ],
+        "summary": "Participacao por aula no periodo selecionado",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          { 
+            "$ref": "#/components/parameters/XBoxIdHeader"
+          },
+          {
+            "name": "startDate",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "example": "2026-04-01"
+            }
+          },
+          {
+            "name": "endDate",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "example": "2026-04-30"
+            }
+          },
+          {
+            "name": "coachId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/ObjectId"
+            }
+          },
+          {
+            "name": "studentId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/ObjectId"
+            }
+          },
+          {
+            "name": "classId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/ObjectId"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Participacao por aula retornada com sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token ausente, invalido ou expirado"
+          },
+          "403": {
+            "description": "Perfil sem permissao para consultar relatorios"
+          }
+        }
+      }
+    },
+    "/admin/reports/training-ranking": {
+      "get": {
+        "tags": [
+          "Admin Reports"
+        ],
+        "summary": "Ranking de treino por PR, frequencia ou XP",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/XBoxIdHeader"
+          },
+          {
+            "name": "rankingBy",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "prs",
+                "attendance",
+                "xp"
+              ],
+              "example": "prs"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "example": 10
+            }
+          },
+          {
+            "name": "startDate",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "example": "2026-04-01"
+            }
+          },
+          {
+            "name": "endDate",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "example": "2026-04-30"
+            }
+          },
+          {
+            "name": "coachId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/ObjectId"
+            }
+          },
+          {
+            "name": "studentId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/ObjectId"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Ranking retornado com sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token ausente, invalido ou expirado"
+          },
+          "403": {
+            "description": "Perfil sem permissao para consultar relatorios"
+          }
+        }
+      }
+    },
+    "/admin/reports/gym-rats": {
+      "get": {
+        "tags": [
+          "Admin Reports"
+        ],
+        "summary": "Top frequentadores do box no periodo selecionado",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/XBoxIdHeader"
+          },
+          {
+            "name": "startDate",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "example": "2026-04-01"
+            }
+          },
+          {
+            "name": "endDate",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "example": "2026-04-30"
+            }
+          },
+          {
+            "name": "coachId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/ObjectId"
+            }
+          },
+          {
+            "name": "studentId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/ObjectId"
+            }
+          },
+          {
+            "name": "classId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/ObjectId"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "example": 10
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Ranking de frequentadores retornado com sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token ausente, invalido ou expirado"
+          },
+          "403": {
+            "description": "Perfil sem permissao para consultar relatorios"
+          }
+        }
+      }
+    },
+    "/admin/reports/rewards-xp": {
+      "get": {
+        "tags": [
+          "Admin Reports"
+        ],
+        "summary": "Distribuicao de XP e snapshot de streaks por periodo",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/XBoxIdHeader"
+          },
+          {
+            "name": "startDate",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "example": "2026-04-01"
+            }
+          },
+          {
+            "name": "endDate",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "example": "2026-04-30"
+            }
+          },
+          {
+            "name": "coachId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/ObjectId"
+            }
+          },
+          {
+            "name": "studentId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/ObjectId"
+            }
+          },
+          {
+            "name": "minStreak",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "example": 7
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "example": 10
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Relatorio de rewards/xp retornado com sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token ausente, invalido ou expirado"
+          },
+          "403": {
+            "description": "Perfil sem permissao para consultar relatorios"
+          }
+        }
+      }
+    },
+    "/admin/reports/coach-assignments": {
+      "get": {
+        "tags": [
+          "Admin Reports"
+        ],
+        "summary": "Lista vinculos ativos coach-turma no box",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/XBoxIdHeader"
+          },
+          {
+            "name": "coachId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/ObjectId"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Vinculos retornados com sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Admin Reports"
+        ],
+        "summary": "Cria vinculo coach-turma para habilitar filtros por coach",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/XBoxIdHeader"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "coachId",
+                  "classId"
+                ],
+                "properties": {
+                  "coachId": {
+                    "$ref": "#/components/schemas/ObjectId"
+                  },
+                  "classId": {
+                    "$ref": "#/components/schemas/ObjectId"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Vinculo criado com sucesso"
+          },
+          "403": {
+            "description": "Perfil sem permissao para vincular coach"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Admin Reports"
+        ],
+        "summary": "Remove vinculo ativo coach-turma",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/XBoxIdHeader"
+          },
+          {
+            "name": "coachId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ObjectId"
+            }
+          },
+          {
+            "name": "classId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ObjectId"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Vinculo removido com sucesso"
+          },
+          "403": {
+            "description": "Perfil sem permissao para remover vinculo"
+          }
+        }
+      }
+    },
     "/auth/login": {
       "post": {
         "tags": [
@@ -169,7 +794,7 @@
           "Classes"
         ],
         "summary": "Cadastra aula recorrente do box",
-        "description": "Permite ao ADMIN cadastrar a grade de aulas informando nome, dias da semana e faixa de horario.",
+        "description": "Permite ao ADMIN cadastrar a grade de aulas informando nome, dias da semana, faixa de horario e limite opcional de check-ins por dia.",
         "security": [
           {
             "bearerAuth": []
@@ -261,7 +886,7 @@
           "Checkins"
         ],
         "summary": "Realiza check-in por geolocalizacao no box",
-        "description": "Permite check-in apenas quando o atleta estiver a menos de geofenceRadius metros das coordenadas do box, matriculado nele e dentro da janela de horario da aula selecionada.",
+        "description": "Permite check-in quando o atleta estiver a menos de geofenceRadius metros das coordenadas do box e matriculado nele. O check-in nao depende da janela de horario da aula. Cada usuario pode realizar apenas 1 check-in por dia (global). Se a aula tiver limite de check-ins e ele for atingido no dia, novos check-ins sao bloqueados.",
         "security": [
           {
             "bearerAuth": []
@@ -304,7 +929,7 @@
             }
           },
           "403": {
-            "description": "Usuario ainda nao matriculado no box, fora do raio permitido ou fora da janela da aula",
+            "description": "Usuario ainda nao matriculado no box, fora do raio permitido, check-in diario global ja realizado ou limite diario de check-ins da aula atingido",
             "content": {
               "application/json": {
                 "schema": {
@@ -315,6 +940,65 @@
           },
           "404": {
             "description": "Box nao encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/checkins/{checkinId}": {
+      "delete": {
+        "tags": [
+          "Checkins"
+        ],
+        "summary": "Remove check-in do aluno autenticado",
+        "description": "Permite cancelar um check-in do proprio aluno somente ate 1 hora antes do horario de inicio da aula.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/XBoxIdHeader"
+          },
+          {
+            "name": "checkinId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ObjectId"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Check-in removido com sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteCheckinResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Cancelamento fora da janela permitida ou perfil sem permissao",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Check-in nao encontrado para o usuario no box selecionado",
             "content": {
               "application/json": {
                 "schema": {
@@ -632,7 +1316,7 @@
             }
           },
           "403": {
-            "description": "Perfil sem permissao para postar",
+            "description": "Perfil sem permissao para upload no feed",
             "content": {
               "application/json": {
                 "schema": {
@@ -650,7 +1334,7 @@
           "Feed"
         ],
         "summary": "Cria post no feed do box",
-        "description": "Recebe texto + foto opcional e vincula o post a um check-in valido do aluno. Um check-in aceita somente um post.",
+        "description": "Recebe texto + foto opcional. Para ALUNO, exige check-in valido do proprio usuario e cada check-in aceita somente um post. Para ADMIN/COACH, checkinId e opcional.",
         "security": [
           {
             "bearerAuth": []
@@ -1110,6 +1794,59 @@
           },
           "401": {
             "description": "Token ausente, invalido ou expirado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users/coaches": {
+      "get": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Lista todos os coaches do box do usuario autenticado",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/XBoxIdHeader"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de coaches retornada com sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Student"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token ausente, invalido ou expirado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Perfil sem permissao para listar coaches",
             "content": {
               "application/json": {
                 "schema": {
@@ -1801,6 +2538,11 @@
             "type": "string",
             "pattern": "^([01]\\d|2[0-3]):([0-5]\\d)(:[0-5]\\d)?$",
             "example": "08:00"
+          },
+          "checkinLimit": {
+            "type": "number",
+            "minimum": 1,
+            "example": 20
           }
         }
       },
@@ -1825,12 +2567,18 @@
       "CreateFeedPostDto": {
         "type": "object",
         "required": [
-          "checkinId",
           "text"
         ],
         "properties": {
           "checkinId": {
-            "$ref": "#/components/schemas/ObjectId"
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ObjectId"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "text": {
             "type": "string",
@@ -2168,6 +2916,22 @@
           }
         }
       },
+      "DeleteCheckinResponse": {
+        "type": "object",
+        "required": [
+          "checkinId",
+          "message"
+        ],
+        "properties": {
+          "checkinId": {
+            "$ref": "#/components/schemas/ObjectId"
+          },
+          "message": {
+            "type": "string",
+            "example": "Check-in removido com sucesso"
+          }
+        }
+      },
       "CheckinClassSummary": {
         "type": "object",
         "required": [
@@ -2191,6 +2955,17 @@
           "endTime": {
             "type": "string",
             "example": "08:00"
+          },
+          "checkinLimit": {
+            "oneOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "example": 20
           }
         }
       },
@@ -2359,7 +3134,6 @@
         "type": "object",
         "required": [
           "postId",
-          "checkinId",
           "message"
         ],
         "properties": {
@@ -2367,7 +3141,14 @@
             "$ref": "#/components/schemas/ObjectId"
           },
           "checkinId": {
-            "$ref": "#/components/schemas/ObjectId"
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ObjectId"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "message": {
             "type": "string",
@@ -2598,6 +3379,11 @@
           "endTime": {
             "type": "string",
             "example": "08:00"
+          },
+          "checkinLimit": {
+            "type": "number",
+            "minimum": 1,
+            "example": 20
           },
           "createdAt": {
             "type": "string",
@@ -3024,7 +3810,6 @@
           "_id",
           "userId",
           "boxId",
-          "checkinId",
           "text",
           "source",
           "createdAt"
@@ -3040,7 +3825,14 @@
             "$ref": "#/components/schemas/ObjectId"
           },
           "checkinId": {
-            "$ref": "#/components/schemas/ObjectId"
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ObjectId"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "resultId": {
             "$ref": "#/components/schemas/ObjectId"
