@@ -16,6 +16,7 @@ const SUNDAY_BONUS_XP = 5;
 const FULL_WEEK_BONUS_XP = 5;
 const FULL_WEEK_BONUS_FREEZE = 1;
 const MAX_FREEZES = 3;
+const MILLISECONDS_IN_DAY = 24 * 60 * 60 * 1000;
 const MILESTONES = [
   { streakDays: 7, rewardXp: 50, rewardFreeze: 1 },
   { streakDays: 15, rewardXp: 75, rewardFreeze: 0 },
@@ -415,7 +416,7 @@ export class RewardsService {
 
   private diffInDays(startDate: Date, endDate: Date): number {
     return Math.floor(
-      (endDate.getTime() - startDate.getTime()) / (24 * 60 * 60 * 1000),
+      (endDate.getTime() - startDate.getTime()) / MILLISECONDS_IN_DAY,
     );
   }
 

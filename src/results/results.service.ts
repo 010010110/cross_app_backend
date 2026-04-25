@@ -21,6 +21,10 @@ interface ParsedScore {
 
 @Injectable()
 export class ResultsService {
+  private static readonly MIN_LIST_LIMIT = 1;
+  private static readonly MAX_LIST_LIMIT = 200;
+  private static readonly ROUNDS_TO_REPS_MULTIPLIER = 1000;
+
   constructor(
     @Inject(MONGO_CLIENT) private readonly db: Db,
     private readonly feedService: FeedService,
@@ -115,7 +119,10 @@ export class ResultsService {
   }
 
   async listByUser(userId: string, limit = 50) {
-    const normalizedLimit = Math.min(Math.max(limit, 1), 200);
+    const normalizedLimit = Math.min(
+      Math.max(limit, ResultsService.MIN_LIST_LIMIT),
+      ResultsService.MAX_LIST_LIMIT,
+    );
 
     return this.db
       .collection<Result>('results')
@@ -167,7 +174,10 @@ export class ResultsService {
   }
 
   async listPrByUser(userId: string, limit = 50) {
-    const normalizedLimit = Math.min(Math.max(limit, 1), 200);
+    const normalizedLimit = Math.min(
+      Math.max(limit, ResultsService.MIN_LIST_LIMIT),
+      ResultsService.MAX_LIST_LIMIT,
+    );
 
     return this.db
       .collection<Result>('results')
@@ -479,7 +489,7 @@ export class ResultsService {
     if (roundsPlusReps) {
       const rounds = Number(roundsPlusReps[1]);
       const reps = Number(roundsPlusReps[2]);
-      return rounds * 1000 + reps;
+      return rounds * ResultsService.ROUNDS_TO_REPS_MULTIPLIER + reps;
     }
 
     const repsOnly = normalized.match(/^(\d+)(\s*(rep|reps))?$/);

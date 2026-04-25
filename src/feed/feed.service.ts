@@ -22,6 +22,9 @@ export interface AutoPrPostResult {
 
 @Injectable()
 export class FeedService {
+  private static readonly MIN_LIST_LIMIT = 1;
+  private static readonly MAX_LIST_LIMIT = 200;
+
   constructor(@Inject(MONGO_CLIENT) private readonly db: Db) {}
 
   async listFeedByUserBoxes(boxIds: string[], limit = 50) {
@@ -33,7 +36,10 @@ export class FeedService {
       return [];
     }
 
-    const normalizedLimit = Math.min(Math.max(limit, 1), 200);
+    const normalizedLimit = Math.min(
+      Math.max(limit, FeedService.MIN_LIST_LIMIT),
+      FeedService.MAX_LIST_LIMIT,
+    );
 
     return this.db
       .collection<Post>('posts')

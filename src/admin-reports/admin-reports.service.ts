@@ -24,6 +24,11 @@ interface ReportFilterInput {
 
 @Injectable()
 export class AdminReportsService {
+  private static readonly MILLISECONDS_IN_DAY = 24 * 60 * 60 * 1000;
+  private static readonly DEFAULT_REPORT_RANGE_DAYS = 29;
+  private static readonly DEFAULT_THRESHOLD_DAYS = 7;
+  private static readonly DEFAULT_RANKING_LIMIT = 10;
+
   constructor(@Inject(MONGO_CLIENT) private readonly db: Db) {}
 
   async createCoachAssignment(boxId: string, actorUserId: string, coachId: string, classId: string) {
@@ -211,7 +216,11 @@ export class AdminReportsService {
 
   async getInactivity(boxId: string, actor: JwtPayload, filters: ReportFilterInput & { thresholdDays?: string }) {
     const normalizedBoxId = this.ensureObjectId(boxId, 'boxId invalido no contexto');
-    const thresholdDays = this.parsePositiveInt(filters.thresholdDays, 7, 'thresholdDays deve ser um inteiro positivo');
+    const thresholdDays = this.parsePositiveInt(
+      filters.thresholdDays,
+      AdminReportsService.DEFAULT_THRESHOLD_DAYS,
+      'thresholdDays deve ser um inteiro positivo',
+    );
     const normalizedStudentId = filters.studentId
       ? this.ensureObjectId(filters.studentId, 'studentId invalido')
       : null;
@@ -271,7 +280,10 @@ export class AdminReportsService {
         const studentId = (student._id as ObjectId).toHexString();
         const lastCheckinDate = lastCheckinMap.get(studentId) ?? null;
         const daysSinceLastActivity = lastCheckinDate
-          ? Math.floor((now.getTime() - lastCheckinDate.getTime()) / (24 * 60 * 60 * 1000))
+          ? Math.floor(
+              (now.getTime() - lastCheckinDate.getTime()) /
+                AdminReportsService.MILLISECONDS_IN_DAY,
+            )
           : null;
         const streak = streakMap.get(studentId);
 
@@ -429,7 +441,11 @@ export class AdminReportsService {
     const normalizedBoxId = this.ensureObjectId(boxId, 'boxId invalido no contexto');
     const normalizedDates = this.resolveDateRange(filters.startDate, filters.endDate);
     const rankingBy = (filters.rankingBy ?? 'prs').toLowerCase();
-    const limit = this.parsePositiveInt(filters.limit, 10, 'limit deve ser um inteiro positivo');
+    const limit = this.parsePositiveInt(
+      filters.limit,
+      AdminReportsService.DEFAULT_RANKING_LIMIT,
+      'limit deve ser um inteiro positivo',
+    );
     const normalizedStudentId = filters.studentId
       ? this.ensureObjectId(filters.studentId, 'studentId invalido')
       : null;
@@ -532,7 +548,11 @@ export class AdminReportsService {
   ) {
     const normalizedBoxId = this.ensureObjectId(boxId, 'boxId invalido no contexto');
     const normalizedDates = this.resolveDateRange(filters.startDate, filters.endDate);
-    const limit = this.parsePositiveInt(filters.limit, 10, 'limit deve ser um inteiro positivo');
+    const limit = this.parsePositiveInt(
+      filters.limit,
+      AdminReportsService.DEFAULT_RANKING_LIMIT,
+      'limit deve ser um inteiro positivo',
+    );
     const normalizedStudentId = filters.studentId
       ? this.ensureObjectId(filters.studentId, 'studentId invalido')
       : null;
@@ -614,7 +634,11 @@ export class AdminReportsService {
     const normalizedBoxId = this.ensureObjectId(boxId, 'boxId invalido no contexto');
     const normalizedDates = this.resolveDateRange(filters.startDate, filters.endDate);
     const minStreak = this.parsePositiveInt(filters.minStreak, 0, 'minStreak deve ser um inteiro positivo');
-    const limit = this.parsePositiveInt(filters.limit, 10, 'limit deve ser um inteiro positivo');
+    const limit = this.parsePositiveInt(
+      filters.limit,
+      AdminReportsService.DEFAULT_RANKING_LIMIT,
+      'limit deve ser um inteiro positivo',
+    );
     const normalizedStudentId = filters.studentId
       ? this.ensureObjectId(filters.studentId, 'studentId invalido')
       : null;
@@ -837,7 +861,13 @@ export class AdminReportsService {
 
   private resolveDateRange(startDate?: string, endDate?: string) {
     const end = endDate ? new Date(endDate) : new Date();
-    const start = startDate ? new Date(startDate) : new Date(end.getTime() - 29 * 24 * 60 * 60 * 1000);
+    const start = startDate
+      ? new Date(startDate)
+      : new Date(
+          end.getTime() -
+            AdminReportsService.DEFAULT_REPORT_RANGE_DAYS *
+              AdminReportsService.MILLISECONDS_IN_DAY,
+        );
 
     if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
       throw new BadRequestException('startDate/endDate invalidos');

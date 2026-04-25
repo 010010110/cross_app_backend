@@ -17,6 +17,10 @@ import { Checkin } from './interfaces/checkin.interface';
 
 @Injectable()
 export class CheckinsService {
+  private static readonly DELETE_WINDOW_IN_MS = 60 * 60 * 1000;
+  private static readonly EARTH_RADIUS_IN_METERS = 6371000;
+  private static readonly DEGREES_TO_RADIANS_FACTOR = Math.PI / 180;
+
   constructor(
     @Inject(MONGO_CLIENT) private readonly db: Db,
     private readonly rewardsService: RewardsService,
@@ -207,7 +211,9 @@ export class CheckinsService {
     );
 
     const classStartDate = this.resolveClassStartDate(checkin.createdAt, classSchedule.startTime);
-    const deleteDeadline = new Date(classStartDate.getTime() - 60 * 60 * 1000);
+    const deleteDeadline = new Date(
+      classStartDate.getTime() - CheckinsService.DELETE_WINDOW_IN_MS,
+    );
 
     if (new Date().getTime() > deleteDeadline.getTime()) {
       throw new ForbiddenException('Cancelamento permitido somente ate 1 hora antes da aula');
@@ -231,9 +237,9 @@ export class CheckinsService {
     destinationLatitude: number,
     destinationLongitude: number,
   ): number {
-    const earthRadiusInMeters = 6371000;
-
-    const toRadians = (degrees: number): number => (degrees * Math.PI) / 180;
+    const toRadians =
+      (degrees: number): number =>
+        degrees * CheckinsService.DEGREES_TO_RADIANS_FACTOR;
 
     const latitudeDiff = toRadians(destinationLatitude - originLatitude);
     const longitudeDiff = toRadians(destinationLongitude - originLongitude);
@@ -250,7 +256,7 @@ export class CheckinsService {
 
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
-    return earthRadiusInMeters * c;
+    return CheckinsService.EARTH_RADIUS_IN_METERS * c;
   }
 
   private resolveClassStartDate(baseDate: Date, startTime: string) {
